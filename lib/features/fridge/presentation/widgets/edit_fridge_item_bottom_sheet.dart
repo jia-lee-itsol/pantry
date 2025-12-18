@@ -318,7 +318,7 @@ class _EditFridgeItemBottomSheetState
             : null;
 
         return DropdownButtonFormField<String>(
-          value: validCategory,
+          initialValue: validCategory,
           decoration: const InputDecoration(
             labelText: 'カテゴリ',
             border: OutlineInputBorder(),
@@ -359,7 +359,7 @@ class _EditFridgeItemBottomSheetState
         ),
       ),
       error: (error, stack) => DropdownButtonFormField<String>(
-        value: null,
+        initialValue: null,
         decoration: const InputDecoration(
           labelText: 'カテゴリ',
           border: OutlineInputBorder(),

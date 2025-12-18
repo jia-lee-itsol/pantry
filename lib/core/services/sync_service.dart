@@ -40,7 +40,7 @@ class SyncService {
     }
 
     // 모든 재시도 실패
-    throw Exception('操作が失敗しました（${maxRetries}回試行）: $lastException');
+    throw Exception('操作が失敗しました（$maxRetries回試行）: $lastException');
   }
 
   /// 재시도 가능한 에러인지 확인

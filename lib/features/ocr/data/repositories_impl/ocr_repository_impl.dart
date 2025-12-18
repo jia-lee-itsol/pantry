@@ -29,8 +29,7 @@ class OCRRepositoryImpl implements OCRRepository {
         );
 
         final fridgeItem = FridgeItem(
-          id: DateTime.now().millisecondsSinceEpoch.toString() +
-              '_${receiptItem.id}',
+          id: '${DateTime.now().millisecondsSinceEpoch}_${receiptItem.id}',
           name: receiptItem.name,
           quantity: receiptItem.quantity,
           category: null, // 카테고리는 자동 분류가 어려우므로 null

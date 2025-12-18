@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>630905075034-fretpu1g28q0tpgq2ekakdtkt5q2fil1.apps.googleusercontent.com</string>
+	<string>630905075034-ss33cbmfo3sutrgqq063f45efqgkc2ck.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.630905075034-fretpu1g28q0tpgq2ekakdtkt5q2fil1</string>
+	<string>com.googleusercontent.apps.630905075034-ss33cbmfo3sutrgqq063f45efqgkc2ck</string>
 	<key>ANDROID_CLIENT_ID</key>
 	<string>630905075034-tuni7medacc9c9hlakr8aa829kkn3cjo.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
@@ -15,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.itz.pantry</string>
+	<string>com.itz.pantry.ios</string>
 	<key>PROJECT_ID</key>
 	<string>pantry-ae10e</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:630905075034:ios:a8722ec81131b20e9a6f63</string>
+	<string>1:630905075034:ios:ab97511efce549889a6f63</string>
 </dict>
 </plist>
