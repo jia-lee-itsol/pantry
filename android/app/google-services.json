@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "630905075034",
+    "project_id": "pantry-ae10e",
+    "storage_bucket": "pantry-ae10e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:630905075034:android:a2cc5bbf1d05052e9a6f63",
+        "android_client_info": {
+          "package_name": "com.itz.pantry"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "630905075034-tuni7medacc9c9hlakr8aa829kkn3cjo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.itz.pantry",
+            "certificate_hash": "61db3ecece32d921575820495a6c8a648e5c1d3a"
+          }
+        },
+        {
+          "client_id": "630905075034-5120c6igv2takcrgs0c586c9q79vpbg0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLoTTDjAKUNceFeJGW_dnsRYVBtW_KTbg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "630905075034-5120c6igv2takcrgs0c586c9q79vpbg0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "630905075034-fretpu1g28q0tpgq2ekakdtkt5q2fil1.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.itz.pantry"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

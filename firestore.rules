@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 헬퍼 함수: 인증된 사용자 확인
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // 헬퍼 함수: 사용자 소유 확인
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // 사용자별 서브컬렉션 구조
+    // 경로: /users/{userId}/fridge_items/{itemId}
+    match /users/{userId}/fridge_items/{itemId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // 경로: /users/{userId}/stock_items/{itemId}
+    match /users/{userId}/stock_items/{itemId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // 경로: /users/{userId}/alerts/{alertId}
+    match /users/{userId}/alerts/{alertId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // 경로: /users/{userId}/receipts/{receiptId}
+    match /users/{userId}/receipts/{receiptId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // 경로: /users/{userId}/backups/{backupId}
+    match /users/{userId}/backups/{backupId} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // 모든 사용자 서브컬렉션에 대한 일반 규칙
+    match /users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}
+
