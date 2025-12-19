@@ -31,24 +31,17 @@ class _SplashPageState extends State<SplashPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColorSchemes.light.primary,
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // 앱 로고/아이콘
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Icon(
-                Icons.kitchen,
-                size: 64,
-                color: AppColorSchemes.light.primary,
-              ),
+            Image.asset(
+              'assets/icons/logo.png',
+              width: 200,
+              height: 200,
+              fit: BoxFit.contain,
             ),
             const SizedBox(height: AppSpacing.xl),
             
@@ -57,14 +50,14 @@ class _SplashPageState extends State<SplashPage> {
               'Pantry',
               style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppColorSchemes.light.onSurface,
                   ),
             ),
             const SizedBox(height: AppSpacing.md),
             
             // 로딩 인디케이터
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColorSchemes.light.primary),
             ),
           ],
         ),
