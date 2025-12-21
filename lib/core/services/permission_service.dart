@@ -51,6 +51,18 @@ class PermissionService {
     return status.isGranted;
   }
 
+  /// 사진 라이브러리 권한 확인
+  static Future<bool> checkPhotoLibraryPermission() async {
+    final status = await Permission.photos.status;
+    return status.isGranted;
+  }
+
+  /// 사진 라이브러리 권한이 영구적으로 거부되었는지 확인
+  static Future<bool> isPhotoLibraryPermanentlyDenied() async {
+    final status = await Permission.photos.status;
+    return status.isPermanentlyDenied;
+  }
+
   /// 위치 권한이 영구적으로 거부되었는지 확인
   static Future<bool> isLocationPermanentlyDenied() async {
     final status = await Permission.location.status;
@@ -61,6 +73,19 @@ class PermissionService {
   static Future<bool> isCameraPermanentlyDenied() async {
     final status = await Permission.camera.status;
     return status.isPermanentlyDenied;
+  }
+
+  /// 카메라 권한이 설정에서만 변경 가능한지 확인 (denied 또는 permanentlyDenied)
+  /// iOS에서는 한 번 거부하면 재요청이 불가능하므로 설정으로 이동해야 함
+  static Future<bool> shouldOpenSettingsForCamera() async {
+    final status = await Permission.camera.status;
+    return status.isDenied || status.isPermanentlyDenied;
+  }
+
+  /// 사진 라이브러리 권한이 설정에서만 변경 가능한지 확인
+  static Future<bool> shouldOpenSettingsForPhotoLibrary() async {
+    final status = await Permission.photos.status;
+    return status.isDenied || status.isPermanentlyDenied;
   }
 
   /// 설정 앱 열기

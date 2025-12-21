@@ -42,37 +42,23 @@ class _AddStockItemPageState extends ConsumerState<AddStockItemPage> {
       // 카메라 권한 확인 및 요청
       bool hasPermission = await PermissionService.checkCameraPermission();
       if (!hasPermission) {
+        // 이미 거부된 상태인지 먼저 확인
+        final needsSettings =
+            await PermissionService.shouldOpenSettingsForCamera();
+
+        if (needsSettings) {
+          // 이미 거부됨 - 설정으로 이동 필요
+          if (mounted) {
+            _showCameraPermissionDialog(needsSettings: true);
+          }
+          return;
+        }
+
+        // 처음 요청하는 경우 - 시스템 다이얼로그 표시
         hasPermission = await PermissionService.requestCameraPermission();
         if (!hasPermission) {
           if (mounted) {
-            if (await PermissionService.isCameraPermanentlyDenied()) {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('カメラ権限が必要'),
-                  content: const Text(
-                    'レシートをスキャンするためにカメラ権限が必要です。\n設定でカメラ権限を許可してください。',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('キャンセル'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        PermissionService.openSettings();
-                      },
-                      child: const Text('設定を開く'),
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('カメラ権限が必要です。')));
-            }
+            _showCameraPermissionDialog(needsSettings: true);
           }
           return;
         }
@@ -97,19 +83,59 @@ class _AddStockItemPageState extends ConsumerState<AddStockItemPage> {
     }
   }
 
+  void _showCameraPermissionDialog({required bool needsSettings}) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('カメラ権限が必要'),
+        content: const Text(
+          'レシートをスキャンするためにカメラ権限が必要です。\n設定でカメラ権限を許可してください。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              PermissionService.openSettings();
+            },
+            child: const Text('設定を開く'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _pickImageFromGallery() async {
     try {
       // フォトライブラリ権限の確認 (iOS)
       if (Platform.isIOS) {
         bool hasPermission =
-            await PermissionService.requestPhotoLibraryPermission();
+            await PermissionService.checkPhotoLibraryPermission();
         if (!hasPermission) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('フォトライブラリ権限が必要です。')),
-            );
+          // 이미 거부된 상태인지 먼저 확인
+          final needsSettings =
+              await PermissionService.shouldOpenSettingsForPhotoLibrary();
+
+          if (needsSettings) {
+            // 이미 거부됨 - 설정으로 이동 필요
+            if (mounted) {
+              _showPhotoLibraryPermissionDialog();
+            }
+            return;
           }
-          return;
+
+          // 처음 요청하는 경우 - 시스템 다이얼로그 표시
+          hasPermission =
+              await PermissionService.requestPhotoLibraryPermission();
+          if (!hasPermission) {
+            if (mounted) {
+              _showPhotoLibraryPermissionDialog();
+            }
+            return;
+          }
         }
       }
 
@@ -130,6 +156,31 @@ class _AddStockItemPageState extends ConsumerState<AddStockItemPage> {
         ).showSnackBar(SnackBar(content: Text('画像選択失敗: $e')));
       }
     }
+  }
+
+  void _showPhotoLibraryPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('フォトライブラリ権限が必要'),
+        content: const Text(
+          'レシート画像を取得するためにフォトライブラリ権限が必要です。\n設定で権限を許可してください。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              PermissionService.openSettings();
+            },
+            child: const Text('設定を開く'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _applyOCRResult(ReceiptItem receiptItem) async {
