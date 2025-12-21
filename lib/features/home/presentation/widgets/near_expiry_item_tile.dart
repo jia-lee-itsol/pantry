@@ -84,7 +84,7 @@ class NearExpiryItemTile extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      ).colorScheme.onSurface.withAlpha(153),
                     ),
                   ),
                 ],

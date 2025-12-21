@@ -38,7 +38,7 @@ class RecipeRecommendationPage extends ConsumerWidget {
                       size: 64,
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.3),
+                      ).colorScheme.onSurface.withAlpha(76),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
@@ -46,7 +46,7 @@ class RecipeRecommendationPage extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.6),
+                        ).colorScheme.onSurface.withAlpha(153),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xs),
@@ -55,7 +55,7 @@ class RecipeRecommendationPage extends ConsumerWidget {
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.5),
+                        ).colorScheme.onSurface.withAlpha(127),
                       ),
                       textAlign: TextAlign.center,
                     ),

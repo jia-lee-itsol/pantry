@@ -136,7 +136,7 @@ class RecipeCard extends StatelessWidget {
             Text(
               recipe.description,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withAlpha(178),
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -148,7 +148,7 @@ class RecipeCard extends StatelessWidget {
                     size: 16,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.6),
+                    ).colorScheme.onSurface.withAlpha(153),
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
@@ -156,7 +156,7 @@ class RecipeCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      ).colorScheme.onSurface.withAlpha(153),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -167,7 +167,7 @@ class RecipeCard extends StatelessWidget {
                     size: 16,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.6),
+                    ).colorScheme.onSurface.withAlpha(153),
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
@@ -175,7 +175,7 @@ class RecipeCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      ).colorScheme.onSurface.withAlpha(153),
                     ),
                   ),
                 ],
@@ -224,7 +224,7 @@ class RecipeCard extends StatelessWidget {
                                         : Theme.of(context)
                                               .colorScheme
                                               .onSurface
-                                              .withOpacity(0.5),
+                                              .withAlpha(127),
                                   ),
                             ),
                           ),

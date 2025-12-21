@@ -21,7 +21,8 @@ class CompactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final handleTap = onTap ?? (route != null ? () => context.go(route!) : null);
+    final handleTap =
+        onTap ?? (route != null ? () => context.go(route!) : null);
 
     return Expanded(
       child: Card(
@@ -47,20 +48,16 @@ class CompactCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
                 if (subtitle != null) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     subtitle!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
-                        ),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withAlpha(153),
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -73,4 +70,3 @@ class CompactCard extends StatelessWidget {
     );
   }
 }
-

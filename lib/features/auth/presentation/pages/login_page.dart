@@ -58,7 +58,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 Text(
                   '冷蔵庫と備蓄品を管理',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColorSchemes.light.onSurface.withOpacity(0.7),
+                        color: AppColorSchemes.light.onSurface.withAlpha(178),
                       ),
                   textAlign: TextAlign.center,
                 ),

@@ -57,7 +57,7 @@ class LowStockItemCard extends StatelessWidget {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.6),
+                                    .withAlpha(153),
                               ),
                         ),
                       ],
@@ -81,7 +81,7 @@ class LowStockItemCard extends StatelessWidget {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.6),
+                                    .withAlpha(178),
                               ),
                         ),
                         Text(
@@ -102,7 +102,7 @@ class LowStockItemCard extends StatelessWidget {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.6),
+                                    .withAlpha(178),
                               ),
                         ),
                         Text(
