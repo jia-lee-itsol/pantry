@@ -28,42 +28,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 앱 로고/아이콘
-                Container(
-                  width: 120,
+                // 앱 로고
+                Image.asset(
+                  'assets/icons/logo.png',
+                  width: 200,
                   height: 120,
-                  decoration: BoxDecoration(
-                    color: AppColorSchemes.light.primaryContainer,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Icon(
-                    Icons.kitchen,
-                    size: 64,
-                    color: AppColorSchemes.light.primary,
-                  ),
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                
-                // 앱 이름
-                Text(
-                  'Pantry',
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColorSchemes.light.primary,
-                      ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                
+
                 // 설명 텍스트
                 Text(
                   '冷蔵庫と備蓄品を管理',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColorSchemes.light.onSurface.withAlpha(178),
-                      ),
+                    color: AppColorSchemes.light.onSurface.withAlpha(178),
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
-                
+
                 // 구글 로그인 버튼
                 _SocialLoginButton(
                   icon: Icons.g_mobiledata,
@@ -74,7 +57,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                
+
                 // 애플 로그인 버튼 (iOS/macOS만)
                 if (isAppleSignInAvailable)
                   _SocialLoginButton(
@@ -92,20 +75,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
-  Future<void> _handleGoogleSignIn(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
+  Future<void> _handleGoogleSignIn(BuildContext context, WidgetRef ref) async {
     debugPrint('[LoginPage] 구글 로그인 버튼 클릭됨');
     try {
       debugPrint('[LoginPage] UseCase 가져오기 시작');
       final useCase = ref.read(signInWithGoogleUseCaseProvider);
       debugPrint('[LoginPage] UseCase 가져오기 완료');
-      
+
       debugPrint('[LoginPage] UseCase 실행 시작');
       await useCase();
       debugPrint('[LoginPage] UseCase 실행 완료');
-      
+
       if (context.mounted) {
         debugPrint('[LoginPage] 로그인 성공 - 홈으로 이동');
         // 로그인 성공 시 홈으로 이동
@@ -118,13 +98,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       debugPrint('[LoginPage] 에러 타입: ${e.runtimeType}');
       debugPrint('[LoginPage] 에러 메시지: $e');
       debugPrint('[LoginPage] 스택 트레이스: $stackTrace');
-      
+
       if (context.mounted) {
         // 에러 메시지가 너무 길면 요약
         final errorMessage = e.toString().length > 100
             ? 'Googleログインに失敗しました。設定を確認してください。'
             : 'Googleログインに失敗しました: ${e.toString().replaceAll('Exception: ', '')}';
-        
+
         debugPrint('[LoginPage] 에러 스낵바 표시: $errorMessage');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -139,14 +119,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
-  Future<void> _handleAppleSignIn(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
+  Future<void> _handleAppleSignIn(BuildContext context, WidgetRef ref) async {
     try {
       final useCase = ref.read(signInWithAppleUseCaseProvider);
       await useCase();
-      
+
       if (context.mounted) {
         // 로그인 성공 시 홈으로 이동
         context.go('/');
@@ -208,9 +185,9 @@ class _SocialLoginButton extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: textColor,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -218,4 +195,3 @@ class _SocialLoginButton extends StatelessWidget {
     );
   }
 }
-
