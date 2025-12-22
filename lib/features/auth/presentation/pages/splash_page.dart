@@ -44,17 +44,7 @@ class _SplashPageState extends State<SplashPage> {
               fit: BoxFit.contain,
             ),
             const SizedBox(height: AppSpacing.xl),
-            
-            // 앱 이름
-            Text(
-              'Pantry',
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColorSchemes.light.onSurface,
-                  ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            
+
             // 로딩 인디케이터
             CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(AppColorSchemes.light.primary),

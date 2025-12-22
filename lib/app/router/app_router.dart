@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/fridge/presentation/pages/fridge_list_page.dart';
 import '../../features/ocr/presentation/pages/ocr_page.dart';
+import '../../features/ocr/presentation/pages/receipt_scan_page.dart';
 import '../../features/stock/presentation/pages/stock_list_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/list_page.dart';
@@ -35,19 +36,18 @@ Page<T> _buildPageWithSlideTransition<T extends Object?>(
       const end = Offset.zero;
       const curve = Curves.easeInOut;
 
-      final slideAnimation = Tween<Offset>(begin: begin, end: end).animate(
-        CurvedAnimation(parent: animation, curve: curve),
-      );
-      final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: animation, curve: curve),
-      );
+      final slideAnimation = Tween<Offset>(
+        begin: begin,
+        end: end,
+      ).animate(CurvedAnimation(parent: animation, curve: curve));
+      final fadeAnimation = Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(CurvedAnimation(parent: animation, curve: curve));
 
       return SlideTransition(
         position: slideAnimation,
-        child: FadeTransition(
-          opacity: fadeAnimation,
-          child: child,
-        ),
+        child: FadeTransition(opacity: fadeAnimation, child: child),
       );
     },
     transitionDuration: const Duration(milliseconds: 300),
@@ -67,14 +67,12 @@ Page<T> _buildShellPageWithFadeTransition<T extends Object?>(
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       // ShellRoute 내부에서는 페이드 효과만 사용
       const curve = Curves.easeInOut;
-      final fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: animation, curve: curve),
-      );
+      final fadeAnimation = Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(CurvedAnimation(parent: animation, curve: curve));
 
-      return FadeTransition(
-        opacity: fadeAnimation,
-        child: child,
-      );
+      return FadeTransition(opacity: fadeAnimation, child: child);
     },
     transitionDuration: const Duration(milliseconds: 200),
   );
@@ -88,7 +86,8 @@ class CustomTransitionPage<T> extends Page<T> {
     Animation<double> animation,
     Animation<double> secondaryAnimation,
     Widget child,
-  ) transitionsBuilder;
+  )
+  transitionsBuilder;
   final Duration transitionDuration;
 
   const CustomTransitionPage({
@@ -113,35 +112,35 @@ class CustomTransitionPage<T> extends Page<T> {
 final routerProvider = Provider<GoRouter>((ref) {
   // 인증 상태를 watch하여 변경사항을 감지
   final authState = ref.watch(currentUserProvider);
-  
+
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
       final isSplash = state.matchedLocation == '/splash';
-      
+
       // 스플래시 페이지는 리다이렉트하지 않음 (자체적으로 2초 후 이동)
       if (isSplash) {
         return null;
       }
-      
+
       // 로딩 중이면 리다이렉트하지 않음
       if (authState.isLoading) {
         return null;
       }
-      
+
       final isLoggedIn = authState.value != null;
       final isLoggingIn = state.matchedLocation == '/login';
-      
+
       // 로그인하지 않은 경우 로그인 페이지로 리다이렉트
       if (!isLoggedIn && !isLoggingIn) {
         return '/login';
       }
-      
+
       // 로그인한 상태에서 로그인 페이지에 있으면 홈으로 리다이렉트
       if (isLoggedIn && isLoggingIn) {
         return '/';
       }
-      
+
       return null;
     },
     routes: [
@@ -236,6 +235,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: 'recipe',
             pageBuilder: (context, state) => _buildShellPageWithFadeTransition(
               const RecipeRecommendationPage(),
+              state.pageKey,
+              state.name,
+            ),
+          ),
+          GoRoute(
+            path: '/receipt-scan',
+            name: 'receipt-scan',
+            pageBuilder: (context, state) => _buildShellPageWithFadeTransition(
+              const ReceiptScanPage(),
               state.pageKey,
               state.name,
             ),

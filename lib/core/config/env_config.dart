@@ -19,6 +19,11 @@ class EnvConfig {
     return dotenv.env['CHATGPT_API_KEY'] ?? '';
   }
 
+  /// Google Cloud Vision API Key
+  static String get googleCloudVisionApiKey {
+    return dotenv.env['GOOGLE_CLOUD_VISION_API_KEY'] ?? '';
+  }
+
   /// 환경 변수가 제대로 로드되었는지 확인
   static bool get isConfigured {
     return googleMapsApiKey.isNotEmpty;

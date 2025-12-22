@@ -3,7 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../fridge/domain/entities/fridge_item.dart';
+import '../../../fridge/presentation/providers/fridge_provider.dart';
+import '../../../stock/domain/entities/stock_item.dart';
+import '../../../stock/presentation/providers/stock_provider.dart';
+import '../../domain/entities/receipt_item.dart';
 import '../providers/ocr_provider.dart';
+
+enum StorageType { fridge, stock }
 
 class OCRPage extends ConsumerStatefulWidget {
   const OCRPage({super.key});
@@ -15,6 +22,8 @@ class OCRPage extends ConsumerStatefulWidget {
 class _OCRPageState extends ConsumerState<OCRPage> {
   final ImagePicker _imagePicker = ImagePicker();
   String? _selectedImagePath;
+  final Map<String, StorageType?> _itemSelections = {};
+  final Set<String> _savedItems = {};
 
   Future<void> _pickImage() async {
     try {
@@ -26,6 +35,8 @@ class _OCRPageState extends ConsumerState<OCRPage> {
       if (image != null) {
         setState(() {
           _selectedImagePath = image.path;
+          _itemSelections.clear();
+          _savedItems.clear();
         });
       }
     } catch (e) {
@@ -47,6 +58,8 @@ class _OCRPageState extends ConsumerState<OCRPage> {
       if (image != null) {
         setState(() {
           _selectedImagePath = image.path;
+          _itemSelections.clear();
+          _savedItems.clear();
         });
       }
     } catch (e) {
@@ -58,13 +71,62 @@ class _OCRPageState extends ConsumerState<OCRPage> {
     }
   }
 
+  Future<void> _saveItem(ReceiptItem item, StorageType type) async {
+    try {
+      final now = DateTime.now();
+
+      if (type == StorageType.fridge) {
+        final fridgeRepository = ref.read(fridgeRepositoryProvider);
+        final fridgeItem = FridgeItem(
+          id: 'fridge_${now.millisecondsSinceEpoch}_${item.id}',
+          name: item.name,
+          quantity: item.quantity,
+          expiryDate: now.add(const Duration(days: 7)),
+          createdAt: now,
+        );
+        await fridgeRepository.addFridgeItem(fridgeItem);
+        ref.invalidate(fridgeItemsProvider);
+      } else {
+        final stockRepository = ref.read(stockRepositoryProvider);
+        final stockItem = StockItem(
+          id: 'stock_${now.millisecondsSinceEpoch}_${item.id}',
+          name: item.name,
+          quantity: item.quantity,
+          lastUpdated: now,
+        );
+        await stockRepository.addStockItem(stockItem);
+        ref.invalidate(stockItemsProvider);
+      }
+
+      setState(() {
+        _savedItems.add(item.id);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${item.name}を${type == StorageType.fridge ? '冷蔵庫' : '備蓄品'}に追加しました',
+            ),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失敗: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('レシートOCR')),
       body: Column(
         children: [
-          // 이미지 선택 버튼
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -83,12 +145,10 @@ class _OCRPageState extends ConsumerState<OCRPage> {
               ],
             ),
           ),
-
-          // 선택된 이미지 표시
           if (_selectedImagePath != null) ...[
             Container(
               margin: const EdgeInsets.all(16.0),
-              height: 200,
+              height: 150,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey),
                 borderRadius: BorderRadius.circular(8),
@@ -101,8 +161,6 @@ class _OCRPageState extends ConsumerState<OCRPage> {
                 ),
               ),
             ),
-
-            // OCR 결과 표시
             Expanded(child: _buildOCRResults()),
           ] else
             const Expanded(
@@ -142,16 +200,113 @@ class _OCRPageState extends ConsumerState<OCRPage> {
           itemCount: items.length,
           itemBuilder: (context, index) {
             final item = items[index];
+            final isSaved = _savedItems.contains(item.id);
+            final selectedType = _itemSelections[item.id];
+
             return Card(
-              child: ListTile(
-                title: Text(item.name),
-                subtitle: Text('数量: ${item.quantity}'),
-                trailing: Text(
-                  '${item.price.toStringAsFixed(0)}円',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.name,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '数量: ${item.quantity}',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          '${item.price.toStringAsFixed(0)}円',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (isSaved)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withAlpha(25),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${selectedType == StorageType.fridge ? '冷蔵庫' : '備蓄品'}に追加済み',
+                              style: const TextStyle(color: Colors.green),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _itemSelections[item.id] = StorageType.fridge;
+                                });
+                                _saveItem(item, StorageType.fridge);
+                              },
+                              icon: const Icon(Icons.kitchen),
+                              label: const Text('冷蔵庫'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.blue,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _itemSelections[item.id] = StorageType.stock;
+                                });
+                                _saveItem(item, StorageType.stock);
+                              },
+                              icon: const Icon(Icons.inventory_2),
+                              label: const Text('備蓄品'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.orange,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
                 ),
               ),
             );

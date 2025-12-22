@@ -25,6 +25,7 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
+  final _priceController = TextEditingController();
   final _targetQuantityController = TextEditingController();
   String? _selectedCategory;
   DateTime? _expiryDate;
@@ -32,11 +33,13 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
   final ImagePicker _imagePicker = ImagePicker();
   String? _selectedImagePath;
   String? _barcodeImagePath;
+  List<ReceiptItem> _scannedItems = [];
 
   @override
   void dispose() {
     _nameController.dispose();
     _quantityController.dispose();
+    _priceController.dispose();
     _targetQuantityController.dispose();
     super.dispose();
   }
@@ -253,7 +256,7 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
     setState(() {
       _nameController.text = receiptItem.name;
       _quantityController.text = receiptItem.quantity.toString();
-      // 가격은 냉장고 아이템에는 불필요하므로 무시
+      _priceController.text = receiptItem.price.toStringAsFixed(0);
     });
 
     // 자동 등록이 체크되어 있으면 AI로 유통기한을 자동 설정
@@ -497,6 +500,66 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
             const SizedBox(height: AppSpacing.md),
             const Divider(),
             const SizedBox(height: AppSpacing.md),
+            // スキャンされた商品カード表示
+            if (_scannedItems.isNotEmpty) ...[
+              Text(
+                'スキャンされた商品',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              ..._scannedItems.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                return Card(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '数量: ${item.quantity}  |  ${item.price.toStringAsFixed(0)}円',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_downward, color: Colors.blue),
+                          onPressed: () => _applyOCRResult(item),
+                          tooltip: '下のフォームに適用',
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              _scannedItems.removeAt(index);
+                            });
+                          },
+                          tooltip: '削除',
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: AppSpacing.md),
+              const Divider(),
+              const SizedBox(height: AppSpacing.md),
+            ],
             // 手動入力セクション
             TextFormField(
               controller: _nameController,
@@ -536,9 +599,21 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
-                Expanded(child: _buildCategoryDropdown()),
+                Expanded(
+                  child: TextFormField(
+                    controller: _priceController,
+                    decoration: const InputDecoration(
+                      labelText: '金額',
+                      border: OutlineInputBorder(),
+                      suffixText: '円',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
               ],
             ),
+            const SizedBox(height: AppSpacing.md),
+            _buildCategoryDropdown(),
             const SizedBox(height: AppSpacing.md),
             // 目標数量 (목표 수량)
             TextFormField(
@@ -670,22 +745,40 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
           );
         }
 
+        // OCR 결과를 _scannedItems에 저장
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scannedItems.isEmpty && items.isNotEmpty) {
+            setState(() {
+              _scannedItems = List.from(items);
+            });
+          }
+        });
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('認識された商品:', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: AppSpacing.sm),
-            ...items.map(
-              (item) => Card(
-                child: ListTile(
-                  title: Text(item.name),
-                  subtitle: Text('数量: ${item.quantity}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: () => _applyOCRResult(item),
-                  ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${items.length}個の商品を認識しました',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Colors.green,
+                      ),
                 ),
-              ),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _scannedItems = List.from(items);
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('商品をフォームに追加しました')),
+                    );
+                  },
+                  icon: const Icon(Icons.add_circle_outline, size: 18),
+                  label: const Text('すべて追加'),
+                ),
+              ],
             ),
           ],
         );

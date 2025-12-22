@@ -449,6 +449,16 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: AppSpacing.lg),
 
+              // レシートOCRセクション
+              SectionCard(
+                title: 'レシートスキャン',
+                subtitle: 'レシートから商品を自動登録',
+                icon: Icons.receipt_long,
+                route: '/receipt-scan',
+              ),
+
+              const SizedBox(height: AppSpacing.md),
+
               // 레시피 추천 섹션
               SectionCard(
                 title: 'レシピ提案',
