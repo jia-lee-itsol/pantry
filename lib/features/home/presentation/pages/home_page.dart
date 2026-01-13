@@ -467,61 +467,61 @@ class HomePage extends ConsumerWidget {
                 route: '/recipe',
               ),
 
-              const SizedBox(height: AppSpacing.lg),
+              // const SizedBox(height: AppSpacing.lg),
 
-              // 할인 상품 정보 섹션
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '近くのセール情報',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      // TODO: 할인 상품 상세 페이지 구현
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('セール情報機能は準備中です。'),
-                        ),
-                      );
-                    },
-                    child: const Text('もっと見る'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Container(
-                  height: 120,
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.local_offer_outlined,
-                          size: 48,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          'セール情報は準備中です',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              // // 할인 상품 정보 섹션
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              //   children: [
+              //     Text(
+              //       '近くのセール情報',
+              //       style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              //         fontWeight: FontWeight.bold,
+              //       ),
+              //     ),
+              //     TextButton(
+              //       onPressed: () {
+              //         // TODO: 할인 상품 상세 페이지 구현
+              //         ScaffoldMessenger.of(context).showSnackBar(
+              //           const SnackBar(
+              //             content: Text('セール情報機能は準備中です。'),
+              //           ),
+              //         );
+              //       },
+              //       child: const Text('もっと見る'),
+              //     ),
+              //   ],
+              // ),
+              // const SizedBox(height: AppSpacing.md),
+              // Card(
+              //   elevation: 2,
+              //   shape: RoundedRectangleBorder(
+              //     borderRadius: BorderRadius.circular(12),
+              //   ),
+              //   child: Container(
+              //     height: 120,
+              //     padding: const EdgeInsets.all(AppSpacing.md),
+              //     child: Center(
+              //       child: Column(
+              //         mainAxisAlignment: MainAxisAlignment.center,
+              //         children: [
+              //           Icon(
+              //             Icons.local_offer_outlined,
+              //             size: 48,
+              //             color: Colors.grey.shade400,
+              //           ),
+              //           const SizedBox(height: AppSpacing.sm),
+              //           Text(
+              //             'セール情報は準備中です',
+              //             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              //               color: Colors.grey.shade600,
+              //             ),
+              //           ),
+              //         ],
+              //       ),
+              //     ),
+              //   ),
+              // ),
               //   child: ListView(
               //     scrollDirection: Axis.horizontal,
               //     children: const [

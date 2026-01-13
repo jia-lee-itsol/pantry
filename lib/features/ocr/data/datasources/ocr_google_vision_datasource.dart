@@ -396,8 +396,9 @@ class OCRGoogleVisionDataSource implements OCRRemoteDataSource {
     if (RegExp(r'^T\d{10,}').hasMatch(line)) return true;
 
     // 숫자만 있는 라인 (바코드 등) - 단, 짧은 가격은 제외
-    if (RegExp(r'^[\d\s\-]+$').hasMatch(line.trim()) && line.length > 5)
+    if (RegExp(r'^[\d\s\-]+$').hasMatch(line.trim()) && line.length > 5) {
       return true;
+    }
 
     // 너무 긴 숫자 (10자리 이상)
     if (RegExp(r'\d{10,}').hasMatch(line)) return true;
@@ -415,8 +416,9 @@ class OCRGoogleVisionDataSource implements OCRRemoteDataSource {
     // if (RegExp(r'^\*\d+$').hasMatch(line)) return false;
 
     // 회원코드 패턴 (****-****-*****-20049)
-    if (RegExp(r'\*{4,}').hasMatch(line) && RegExp(r'\d+').hasMatch(line))
+    if (RegExp(r'\*{4,}').hasMatch(line) && RegExp(r'\d+').hasMatch(line)) {
       return true;
+    }
 
     return false;
   }
