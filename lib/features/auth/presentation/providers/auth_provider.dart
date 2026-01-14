@@ -8,6 +8,7 @@ import '../../domain/usecases/sign_in_with_google_usecase.dart';
 import '../../domain/usecases/sign_in_with_apple_usecase.dart';
 import '../../domain/usecases/get_current_user_usecase.dart';
 import '../../domain/usecases/sign_out_usecase.dart';
+import '../../domain/usecases/delete_account_usecase.dart';
 import '../../../../core/services/auth_service.dart';
 
 /// 인증 리포지토리 프로바이더
@@ -39,6 +40,12 @@ final getCurrentUserUseCaseProvider = Provider<GetCurrentUserUseCase>((ref) {
 final signOutUseCaseProvider = Provider<SignOutUseCase>((ref) {
   final repository = ref.watch(authRepositoryProvider);
   return SignOutUseCase(repository);
+});
+
+/// 계정 삭제 유스케이스 프로바이더
+final deleteAccountUseCaseProvider = Provider<DeleteAccountUseCase>((ref) {
+  final repository = ref.watch(authRepositoryProvider);
+  return DeleteAccountUseCase(repository);
 });
 
 /// 현재 로그인한 사용자 프로바이더

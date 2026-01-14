@@ -189,6 +189,34 @@ class AuthFirebaseDataSource {
     }
   }
 
+  /// 계정을 삭제합니다.
+  Future<void> deleteAccount() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('ログインしているユーザーがいません。');
+      }
+
+      // Google 로그인 연결 해제
+      await _googleSignIn.signOut();
+
+      // Firebase 계정 삭제
+      await user.delete();
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      debugPrint('계정 삭제 실패: $e');
+      if (e.code == 'requires-recent-login') {
+        throw Exception(
+          'セキュリティ上の理由から、再ログインが必要です。\n'
+          '一度ログアウトしてから再度ログインした後、アカウント削除をお試しください。',
+        );
+      }
+      rethrow;
+    } catch (e) {
+      debugPrint('계정 삭제 실패: $e');
+      rethrow;
+    }
+  }
+
   /// 인증 상태 변화를 스트림으로 반환합니다.
   Stream<User?> authStateChanges() {
     return _auth.authStateChanges().map((firebaseUser) {

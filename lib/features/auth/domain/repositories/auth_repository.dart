@@ -14,6 +14,9 @@ abstract class AuthRepository {
   /// 로그아웃을 수행합니다.
   Future<void> signOut();
 
+  /// 계정을 삭제합니다.
+  Future<void> deleteAccount();
+
   /// 인증 상태 변화를 스트림으로 반환합니다.
   Stream<User?> authStateChanges();
 }

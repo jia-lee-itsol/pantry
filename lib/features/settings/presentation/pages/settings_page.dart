@@ -173,6 +173,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               _showLogoutDialog(context);
             },
           ),
+          _buildListTile(
+            title: 'アカウント削除',
+            subtitle: 'アカウントとすべてのデータを完全に削除します',
+            icon: Icons.person_remove,
+            onTap: () {
+              _showDeleteAccountDialog(context);
+            },
+          ),
         ],
       ),
     );
@@ -485,6 +493,82 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             },
             child: const Text(
               'ログアウト',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('アカウント削除'),
+        content: const Text(
+          'アカウントを削除すると、すべてのデータが完全に削除され、復元できません。\n\n本当に削除しますか？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(AppStrings.cancel),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+
+              // 최종 확인 다이얼로그
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (confirmContext) => AlertDialog(
+                  title: const Text('最終確認'),
+                  content: const Text(
+                    'この操作は取り消せません。\nアカウントを完全に削除してもよろしいですか？',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(confirmContext).pop(false),
+                      child: const Text(AppStrings.cancel),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(confirmContext).pop(true),
+                      child: const Text(
+                        '削除する',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm != true) return;
+
+              try {
+                final deleteAccountUseCase = ref.read(deleteAccountUseCaseProvider);
+                await deleteAccountUseCase();
+                if (context.mounted) {
+                  context.go('/login');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('アカウントが削除されました。'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('アカウント削除に失敗しました: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text(
+              '削除',
               style: TextStyle(color: Colors.red),
             ),
           ),

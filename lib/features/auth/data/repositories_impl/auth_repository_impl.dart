@@ -35,6 +35,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> deleteAccount() async {
+    await dataSource.deleteAccount();
+  }
+
+  @override
   Stream<User?> authStateChanges() {
     return dataSource.authStateChanges();
   }
