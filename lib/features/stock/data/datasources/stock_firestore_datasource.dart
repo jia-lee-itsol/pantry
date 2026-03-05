@@ -17,7 +17,21 @@ class StockFirestoreDataSource implements StockDataSource {
     return _auth.currentUser?.uid;
   }
 
-  /// 사용자별 컬렉션 경로 가져오기
+  /// 현재 사용자의 householdId 가져오기
+  Future<String?> _getCurrentHouseholdId() async {
+    final userId = _getCurrentUserId();
+    if (userId == null) return null;
+
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    return userDoc.data()?['householdId'] as String?;
+  }
+
+  /// householdId 기반 컬렉션 경로 가져오기
+  CollectionReference _getHouseholdCollection(String householdId) {
+    return _firestore.collection('households').doc(householdId).collection(_collection);
+  }
+
+  /// 사용자별 컬렉션 경로 가져오기 (레거시 - 마이그레이션 전 데이터용)
   CollectionReference _getUserCollection(String userId) {
     return _firestore.collection('users').doc(userId).collection(_collection);
   }
@@ -34,17 +48,19 @@ class StockFirestoreDataSource implements StockDataSource {
       throw Exception('사용자가 로그인하지 않았습니다.');
     }
 
+    final householdId = await _getCurrentHouseholdId();
+
     return await _syncService.executeWithRetry(() async {
+      final collection = householdId != null
+          ? _getHouseholdCollection(householdId)
+          : _getUserCollection(userId);
+
       // 오프라인 우선: 캐시에서 먼저 읽기 시도
-      final snapshot = await _getUserCollection(
-        userId,
-      ).get(const GetOptions(source: Source.cache));
+      final snapshot = await collection.get(const GetOptions(source: Source.cache));
 
       // 캐시에 데이터가 없으면 서버에서 가져오기
       if (snapshot.docs.isEmpty) {
-        final serverSnapshot = await _getUserCollection(
-          userId,
-        ).get(const GetOptions(source: Source.server));
+        final serverSnapshot = await collection.get(const GetOptions(source: Source.server));
         return serverSnapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
           return StockItemModel.fromJson({'id': doc.id, ...data});
@@ -76,10 +92,16 @@ class StockFirestoreDataSource implements StockDataSource {
       throw Exception('사용자가 로그인하지 않았습니다.');
     }
 
+    final householdId = await _getCurrentHouseholdId();
+
     return await _syncService.executeWithRetry(() async {
-      Query query = _getUserCollection(
-        userId,
-      ).orderBy('lastUpdated', descending: true).limit(limit);
+      final collection = householdId != null
+          ? _getHouseholdCollection(householdId)
+          : _getUserCollection(userId);
+
+      Query query = collection
+          .orderBy('lastUpdated', descending: true)
+          .limit(limit);
 
       if (startAfter != null) {
         query = query.startAfterDocument(startAfter);
@@ -111,8 +133,21 @@ class StockFirestoreDataSource implements StockDataSource {
       throw Exception('사용자가 로그인하지 않았습니다.');
     }
 
+    final householdId = await _getCurrentHouseholdId();
+
     await _syncService.executeWithRetry(() async {
-      await _getUserCollection(userId).doc(item.id).set(item.toJson());
+      final collection = householdId != null
+          ? _getHouseholdCollection(householdId)
+          : _getUserCollection(userId);
+
+      final json = item.toJson();
+      // 추가한 사용자 정보 기록
+      if (householdId != null) {
+        json['addedBy'] = userId;
+        json['lastModifiedBy'] = userId;
+      }
+
+      await collection.doc(item.id).set(json);
     });
   }
 
@@ -123,13 +158,24 @@ class StockFirestoreDataSource implements StockDataSource {
       throw Exception('사용자가 로그인하지 않았습니다.');
     }
 
+    final householdId = await _getCurrentHouseholdId();
+
     await _syncService.executeWithRetry(() async {
+      final collection = householdId != null
+          ? _getHouseholdCollection(householdId)
+          : _getUserCollection(userId);
+
       final json = item.toJson();
       // targetQuantity가 null인 경우 Firestore에서 필드 삭제
       if (json['targetQuantity'] == null) {
         json['targetQuantity'] = FieldValue.delete();
       }
-      await _getUserCollection(userId).doc(item.id).update(json);
+      // 수정한 사용자 정보 기록
+      if (householdId != null) {
+        json['lastModifiedBy'] = userId;
+      }
+
+      await collection.doc(item.id).update(json);
     });
   }
 
@@ -140,8 +186,14 @@ class StockFirestoreDataSource implements StockDataSource {
       throw Exception('사용자가 로그인하지 않았습니다.');
     }
 
+    final householdId = await _getCurrentHouseholdId();
+
     await _syncService.executeWithRetry(() async {
-      await _getUserCollection(userId).doc(id).delete();
+      final collection = householdId != null
+          ? _getHouseholdCollection(householdId)
+          : _getUserCollection(userId);
+
+      await collection.doc(id).delete();
     });
   }
 }

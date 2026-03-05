@@ -18,6 +18,10 @@ import '../../features/recipe/presentation/pages/recipe_recommendation_page.dart
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/household/presentation/pages/household_page.dart';
+import '../../features/household/presentation/pages/invite_qr_page.dart';
+import '../../features/household/presentation/pages/join_household_page.dart';
+import '../../features/household/presentation/pages/member_management_page.dart';
 import '../../core/widgets/main_navigation.dart';
 
 /// 페이지 전환 애니메이션을 제공하는 커스텀 페이지 빌더
@@ -248,7 +252,44 @@ final routerProvider = Provider<GoRouter>((ref) {
               state.name,
             ),
           ),
+          GoRoute(
+            path: '/household',
+            name: 'household',
+            pageBuilder: (context, state) => _buildShellPageWithFadeTransition(
+              const HouseholdPage(),
+              state.pageKey,
+              state.name,
+            ),
+          ),
         ],
+      ),
+      // Household 관련 페이지들 (네비게이션 바 없음)
+      GoRoute(
+        path: '/household/invite',
+        name: 'household-invite',
+        pageBuilder: (context, state) => _buildPageWithSlideTransition(
+          const InviteQRPage(),
+          state.pageKey,
+          state.name,
+        ),
+      ),
+      GoRoute(
+        path: '/household/join',
+        name: 'household-join',
+        pageBuilder: (context, state) => _buildPageWithSlideTransition(
+          const JoinHouseholdPage(),
+          state.pageKey,
+          state.name,
+        ),
+      ),
+      GoRoute(
+        path: '/household/members',
+        name: 'household-members',
+        pageBuilder: (context, state) => _buildPageWithSlideTransition(
+          const MemberManagementPage(),
+          state.pageKey,
+          state.name,
+        ),
       ),
       // 네비게이션 바 없이 표시될 페이지들
       GoRoute(

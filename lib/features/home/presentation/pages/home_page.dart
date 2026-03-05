@@ -7,6 +7,7 @@ import '../../../../core/design/widgets/app_scaffold.dart';
 import '../../../../core/design/widgets/section_card.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/providers/notification_scheduling_provider.dart';
+import '../../../household/presentation/providers/household_provider.dart';
 import '../providers/home_provider.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/expiry_alert_card.dart';
@@ -24,7 +25,10 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final fridgeItemsAsync = ref.watch(fridgeItemsProvider);
     final stockItemsAsync = ref.watch(stockItemsProvider);
-    
+
+    // 자동 마이그레이션 (기존 사용자를 위한 household 생성)
+    ref.watch(autoMigrationProvider);
+
     // 알림 스케줄링 (데이터 변경 시 자동으로 알림 업데이트)
     ref.watch(notificationSchedulingProvider);
 

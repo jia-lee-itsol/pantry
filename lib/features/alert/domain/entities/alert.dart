@@ -1,6 +1,7 @@
 enum AlertType {
   expiry,
   stock,
+  member, // 멤버 가입/탈퇴 알림
 }
 
 class Alert {

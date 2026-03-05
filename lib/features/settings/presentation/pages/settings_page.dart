@@ -93,6 +93,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
           const SizedBox(height: AppSpacing.lg),
 
+          // 가족 공유 섹션
+          _buildSectionHeader('家族共有'),
+          _buildListTile(
+            title: '共有設定',
+            subtitle: '家族と冷蔵庫を共有・メンバー管理',
+            icon: Icons.people_outline,
+            onTap: () {
+              context.push('/household');
+            },
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
+
           // 데이터 관리 섹션
           _buildSectionHeader('データ管理'),
           _buildListTile(
