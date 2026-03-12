@@ -58,6 +58,9 @@ class HomePage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 공동관리 요청 알림
+              _buildHouseholdRequestAlert(context, ref),
+
               // 알림 섹션
               fridgeItemsAsync.when(
                 data: (items) {
@@ -549,6 +552,68 @@ class HomePage extends ConsumerWidget {
               // ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHouseholdRequestAlert(BuildContext context, WidgetRef ref) {
+    final pendingCount = ref.watch(pendingRequestsCountProvider);
+
+    if (pendingCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return InkWell(
+      onTap: () {
+        context.push('/household/requests');
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.shade200),
+        ),
+        child: Row(
+          children: [
+            Badge(
+              label: Text('$pendingCount'),
+              child: Icon(
+                Icons.mail_outline,
+                color: Colors.blue.shade700,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$pendingCount개의 공동관리 요청이 있습니다',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.blue.shade900,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  Text(
+                    '탭하여 확인하기',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.blue.shade700,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.blue.shade700,
+            ),
+          ],
         ),
       ),
     );

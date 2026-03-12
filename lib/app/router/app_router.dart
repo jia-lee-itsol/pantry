@@ -22,6 +22,9 @@ import '../../features/household/presentation/pages/household_page.dart';
 import '../../features/household/presentation/pages/invite_qr_page.dart';
 import '../../features/household/presentation/pages/join_household_page.dart';
 import '../../features/household/presentation/pages/member_management_page.dart';
+import '../../features/household/presentation/pages/user_search_page.dart';
+import '../../features/household/presentation/pages/household_requests_page.dart';
+import '../../features/auth/presentation/pages/username_registration_page.dart';
 import '../../core/widgets/main_navigation.dart';
 
 /// 페이지 전환 애니메이션을 제공하는 커스텀 페이지 빌더
@@ -287,6 +290,33 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'household-members',
         pageBuilder: (context, state) => _buildPageWithSlideTransition(
           const MemberManagementPage(),
+          state.pageKey,
+          state.name,
+        ),
+      ),
+      GoRoute(
+        path: '/household/search-user',
+        name: 'household-search-user',
+        pageBuilder: (context, state) => _buildPageWithSlideTransition(
+          const UserSearchPage(),
+          state.pageKey,
+          state.name,
+        ),
+      ),
+      GoRoute(
+        path: '/household/requests',
+        name: 'household-requests',
+        pageBuilder: (context, state) => _buildPageWithSlideTransition(
+          const HouseholdRequestsPage(),
+          state.pageKey,
+          state.name,
+        ),
+      ),
+      GoRoute(
+        path: '/username-registration',
+        name: 'username-registration',
+        pageBuilder: (context, state) => _buildPageWithSlideTransition(
+          const UsernameRegistrationPage(),
           state.pageKey,
           state.name,
         ),

@@ -86,6 +86,8 @@ class HouseholdPage extends ConsumerWidget {
     int memberCount,
     bool canManage,
   ) {
+    final pendingCount = ref.watch(pendingRequestsCountProvider);
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -126,6 +128,23 @@ class HouseholdPage extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
+
+        // 받은 요청 (배지 표시)
+        ListTile(
+          leading: Badge(
+            isLabelVisible: pendingCount > 0,
+            label: Text('$pendingCount'),
+            child: const Icon(Icons.mail_outline),
+          ),
+          title: const Text('받은 초대 요청'),
+          subtitle: Text(pendingCount > 0
+              ? '$pendingCount개의 새 요청'
+              : '받은 요청 확인'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/household/requests'),
+        ),
+        const Divider(),
+
         ListTile(
           leading: const Icon(Icons.people),
           title: const Text('멤버 관리'),
@@ -137,10 +156,18 @@ class HouseholdPage extends ConsumerWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.qr_code),
-            title: const Text('멤버 초대'),
-            subtitle: const Text('QR 코드로 새 멤버 초대'),
+            title: const Text('QR/코드로 초대'),
+            subtitle: const Text('초대 코드로 새 멤버 초대'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/household/invite'),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.person_search),
+            title: const Text('아이디로 초대'),
+            subtitle: const Text('아이디를 검색하여 초대'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/household/search-user'),
           ),
         ],
         const Divider(),

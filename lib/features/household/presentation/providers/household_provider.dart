@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../auth/domain/entities/user_profile.dart';
 import '../../data/datasources/household_firestore_datasource.dart';
 import '../../data/repositories_impl/household_repository_impl.dart';
 import '../../domain/entities/household.dart';
 import '../../domain/entities/household_member.dart';
+import '../../domain/entities/household_request.dart';
 import '../../domain/entities/household_role.dart';
 import '../../domain/entities/invite_code.dart';
 import '../../domain/repositories/household_repository.dart';
@@ -285,6 +287,160 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
       return false;
     }
   }
+
+  // ============================================
+  // Username Methods
+  // ============================================
+
+  /// Register a username for the current user
+  Future<bool> registerUsername(String username) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      state = state.copyWith(error: '로그인이 필요합니다');
+      return false;
+    }
+
+    // Validate username format (alphanumeric, 3-20 chars)
+    final usernameRegex = RegExp(r'^[a-zA-Z0-9]{3,20}$');
+    if (!usernameRegex.hasMatch(username)) {
+      state = state.copyWith(error: '아이디는 영문과 숫자만 사용하여 3-20자로 입력해주세요');
+      return false;
+    }
+
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repository.registerUsername(user.uid, username);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  // ============================================
+  // User Search Methods
+  // ============================================
+
+  /// Search for a user by username
+  Future<UserProfile?> searchUserByUsername(String username) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final profile = await _repository.findUserByUsername(username);
+      state = state.copyWith(isLoading: false);
+      return profile;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return null;
+    }
+  }
+
+  // ============================================
+  // Household Request Methods
+  // ============================================
+
+  /// Send a household request to another user
+  Future<bool> sendHouseholdRequest(UserProfile receiver) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      state = state.copyWith(error: '로그인이 필요합니다');
+      return false;
+    }
+
+    // Get current user's username
+    final senderUsername = await _repository.getUsernameByUserId(user.uid);
+    if (senderUsername == null) {
+      state = state.copyWith(error: '먼저 아이디를 등록해주세요');
+      return false;
+    }
+
+    // Get current household
+    final householdId = await _repository.getUserHouseholdId(user.uid);
+    if (householdId == null) {
+      state = state.copyWith(error: '가구가 없습니다');
+      return false;
+    }
+
+    final household = await _repository.getHousehold(householdId);
+    if (household == null) {
+      state = state.copyWith(error: '가구를 찾을 수 없습니다');
+      return false;
+    }
+
+    // Check if already a member
+    if (household.isMember(receiver.id)) {
+      state = state.copyWith(error: '이미 가구 멤버입니다');
+      return false;
+    }
+
+    // Check if request already exists
+    final existingRequest = await _repository.hasExistingRequest(
+      senderId: user.uid,
+      receiverId: receiver.id,
+    );
+    if (existingRequest) {
+      state = state.copyWith(error: '이미 요청을 보냈습니다');
+      return false;
+    }
+
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repository.createHouseholdRequest(
+        senderId: user.uid,
+        senderUsername: senderUsername,
+        senderDisplayName: user.displayName,
+        senderPhotoUrl: user.photoURL,
+        receiverId: receiver.id,
+        receiverUsername: receiver.username,
+        householdId: householdId,
+        householdName: household.name,
+      );
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  /// Accept a household request
+  Future<bool> acceptRequest(String requestId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repository.acceptHouseholdRequest(requestId);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  /// Reject a household request
+  Future<bool> rejectRequest(String requestId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repository.rejectHouseholdRequest(requestId);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  /// Cancel a sent request
+  Future<bool> cancelRequest(String requestId) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _repository.cancelHouseholdRequest(requestId);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
 }
 
 final householdActionsProvider =
@@ -323,4 +479,53 @@ final autoMigrationProvider = FutureProvider<void>((ref) async {
       householdId: household.id,
     );
   }
+});
+
+// ============================================
+// Username Providers
+// ============================================
+
+// Current user's username
+final currentUsernameProvider = FutureProvider<String?>((ref) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return null;
+
+  final repository = ref.watch(householdRepositoryProvider);
+  return repository.getUsernameByUserId(user.uid);
+});
+
+// Check if username is available
+final usernameAvailabilityProvider =
+    FutureProvider.family<bool, String>((ref, username) async {
+  if (username.isEmpty) return false;
+  final repository = ref.watch(householdRepositoryProvider);
+  return repository.isUsernameAvailable(username);
+});
+
+// ============================================
+// Household Request Providers
+// ============================================
+
+// Received requests (real-time)
+final receivedRequestsProvider = StreamProvider<List<HouseholdRequest>>((ref) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return Stream.value([]);
+
+  final repository = ref.watch(householdRepositoryProvider);
+  return repository.watchReceivedRequests(user.uid);
+});
+
+// Sent requests (real-time)
+final sentRequestsProvider = StreamProvider<List<HouseholdRequest>>((ref) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return Stream.value([]);
+
+  final repository = ref.watch(householdRepositoryProvider);
+  return repository.watchSentRequests(user.uid);
+});
+
+// Pending received requests count (for badge)
+final pendingRequestsCountProvider = Provider<int>((ref) {
+  final requests = ref.watch(receivedRequestsProvider).value ?? [];
+  return requests.where((r) => r.isPending).length;
 });

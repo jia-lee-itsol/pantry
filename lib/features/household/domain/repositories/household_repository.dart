@@ -1,5 +1,7 @@
+import '../../../auth/domain/entities/user_profile.dart';
 import '../entities/household.dart';
 import '../entities/household_member.dart';
+import '../entities/household_request.dart';
 import '../entities/household_role.dart';
 import '../entities/invite_code.dart';
 
@@ -42,5 +44,37 @@ abstract class HouseholdRepository {
   Future<void> notifyOwnerOfMemberLeft({
     required String householdId,
     required String memberName,
+  });
+
+  // Username management
+  Future<bool> isUsernameAvailable(String username);
+  Future<void> registerUsername(String userId, String username);
+  Future<String?> getUsernameByUserId(String userId);
+
+  // User search
+  Future<UserProfile?> findUserByUsername(String username);
+
+  // Household requests
+  Future<HouseholdRequest> createHouseholdRequest({
+    required String senderId,
+    required String senderUsername,
+    required String? senderDisplayName,
+    required String? senderPhotoUrl,
+    required String receiverId,
+    required String receiverUsername,
+    required String householdId,
+    required String householdName,
+  });
+  Future<List<HouseholdRequest>> getReceivedRequests(String userId);
+  Stream<List<HouseholdRequest>> watchReceivedRequests(String userId);
+  Future<List<HouseholdRequest>> getSentRequests(String userId);
+  Stream<List<HouseholdRequest>> watchSentRequests(String userId);
+  Future<HouseholdRequest?> getHouseholdRequest(String requestId);
+  Future<void> acceptHouseholdRequest(String requestId);
+  Future<void> rejectHouseholdRequest(String requestId);
+  Future<void> cancelHouseholdRequest(String requestId);
+  Future<bool> hasExistingRequest({
+    required String senderId,
+    required String receiverId,
   });
 }
