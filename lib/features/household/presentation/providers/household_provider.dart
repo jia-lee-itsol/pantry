@@ -2,35 +2,127 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../auth/domain/entities/user_profile.dart';
 import '../../data/datasources/household_firestore_datasource.dart';
+import '../../data/datasources/username_firestore_datasource.dart';
+import '../../data/datasources/household_request_firestore_datasource.dart';
 import '../../data/repositories_impl/household_repository_impl.dart';
+import '../../data/repositories_impl/username_repository_impl.dart';
+import '../../data/repositories_impl/household_request_repository_impl.dart';
 import '../../domain/entities/household.dart';
 import '../../domain/entities/household_member.dart';
 import '../../domain/entities/household_request.dart';
 import '../../domain/entities/household_role.dart';
 import '../../domain/entities/invite_code.dart';
 import '../../domain/repositories/household_repository.dart';
+import '../../domain/repositories/username_repository.dart';
+import '../../domain/repositories/household_request_repository.dart';
+import '../../domain/usecases/register_username_usecase.dart';
+import '../../domain/usecases/send_household_request_usecase.dart';
+import '../../domain/usecases/accept_household_request_usecase.dart';
+import '../../domain/usecases/reject_household_request_usecase.dart';
+import '../../domain/usecases/cancel_household_request_usecase.dart';
+import '../../domain/usecases/notify_user_usecase.dart';
 
-// DataSource Provider
+// ============================================
+// DataSource Providers
+// ============================================
+
 final householdDataSourceProvider = Provider<HouseholdFirestoreDataSource>((ref) {
   return HouseholdFirestoreDataSource();
 });
 
-// Repository Provider
+final usernameDataSourceProvider = Provider<UsernameFirestoreDataSource>((ref) {
+  return UsernameFirestoreDataSource();
+});
+
+final householdRequestDataSourceProvider =
+    Provider<HouseholdRequestFirestoreDataSource>((ref) {
+  return HouseholdRequestFirestoreDataSource();
+});
+
+// ============================================
+// Repository Providers
+// ============================================
+
 final householdRepositoryProvider = Provider<HouseholdRepository>((ref) {
   final dataSource = ref.watch(householdDataSourceProvider);
   return HouseholdRepositoryImpl(dataSource);
 });
 
-// Current User's Household ID
+final usernameRepositoryProvider = Provider<UsernameRepository>((ref) {
+  final dataSource = ref.watch(usernameDataSourceProvider);
+  return UsernameRepositoryImpl(dataSource);
+});
+
+final householdRequestRepositoryProvider =
+    Provider<HouseholdRequestRepository>((ref) {
+  final dataSource = ref.watch(householdRequestDataSourceProvider);
+  return HouseholdRequestRepositoryImpl(dataSource);
+});
+
+// ============================================
+// UseCase Providers
+// ============================================
+
+final notifyUserUseCaseProvider = Provider<NotifyUserUseCase>((ref) {
+  return NotifyUserUseCase();
+});
+
+final registerUsernameUseCaseProvider = Provider<RegisterUsernameUseCase>((ref) {
+  final repository = ref.watch(usernameRepositoryProvider);
+  return RegisterUsernameUseCase(repository);
+});
+
+final sendHouseholdRequestUseCaseProvider =
+    Provider<SendHouseholdRequestUseCase>((ref) {
+  return SendHouseholdRequestUseCase(
+    householdRepository: ref.watch(householdRepositoryProvider),
+    requestRepository: ref.watch(householdRequestRepositoryProvider),
+    usernameRepository: ref.watch(usernameRepositoryProvider),
+    notifyUserUseCase: ref.watch(notifyUserUseCaseProvider),
+  );
+});
+
+final acceptHouseholdRequestUseCaseProvider =
+    Provider<AcceptHouseholdRequestUseCase>((ref) {
+  return AcceptHouseholdRequestUseCase(
+    householdRepository: ref.watch(householdRepositoryProvider),
+    requestRepository: ref.watch(householdRequestRepositoryProvider),
+    notifyUserUseCase: ref.watch(notifyUserUseCaseProvider),
+  );
+});
+
+final rejectHouseholdRequestUseCaseProvider =
+    Provider<RejectHouseholdRequestUseCase>((ref) {
+  final repository = ref.watch(householdRequestRepositoryProvider);
+  return RejectHouseholdRequestUseCase(repository);
+});
+
+final cancelHouseholdRequestUseCaseProvider =
+    Provider<CancelHouseholdRequestUseCase>((ref) {
+  final repository = ref.watch(householdRequestRepositoryProvider);
+  return CancelHouseholdRequestUseCase(repository);
+});
+
+// ============================================
+// Auth State Provider (for clean architecture)
+// ============================================
+
+final currentFirebaseUserProvider = Provider<User?>((ref) {
+  return FirebaseAuth.instance.currentUser;
+});
+
+// ============================================
+// Household State Providers
+// ============================================
+
 final currentHouseholdIdProvider = StreamProvider<String?>((ref) {
-  final user = FirebaseAuth.instance.currentUser;
+  final user = ref.watch(currentFirebaseUserProvider);
   if (user == null) return Stream.value(null);
 
   final repository = ref.watch(householdRepositoryProvider);
   return repository.watchUserHouseholdId(user.uid);
 });
 
-// Current Household
 final currentHouseholdProvider = StreamProvider<Household?>((ref) {
   final householdIdAsync = ref.watch(currentHouseholdIdProvider);
 
@@ -45,34 +137,29 @@ final currentHouseholdProvider = StreamProvider<Household?>((ref) {
   );
 });
 
-// Current User's Role in Household
 final currentUserRoleProvider = Provider<HouseholdRole?>((ref) {
   final household = ref.watch(currentHouseholdProvider).value;
-  final user = FirebaseAuth.instance.currentUser;
+  final user = ref.watch(currentFirebaseUserProvider);
 
   if (household == null || user == null) return null;
   return household.getMemberRole(user.uid);
 });
 
-// Can current user edit items
 final canEditProvider = Provider<bool>((ref) {
   final role = ref.watch(currentUserRoleProvider);
   return role?.canEdit ?? false;
 });
 
-// Can current user manage members
 final canManageMembersProvider = Provider<bool>((ref) {
   final role = ref.watch(currentUserRoleProvider);
   return role?.canManageMembers ?? false;
 });
 
-// Household Members List
 final householdMembersProvider = Provider<List<HouseholdMember>>((ref) {
   final household = ref.watch(currentHouseholdProvider).value;
   return household?.membersList ?? [];
 });
 
-// Active Invite Codes
 final activeInviteCodesProvider = FutureProvider<List<InviteCode>>((ref) async {
   final householdId = ref.watch(currentHouseholdIdProvider).value;
   if (householdId == null) return [];
@@ -81,7 +168,54 @@ final activeInviteCodesProvider = FutureProvider<List<InviteCode>>((ref) async {
   return repository.getActiveInviteCodes(householdId);
 });
 
-// Household Actions State
+// ============================================
+// Username Providers
+// ============================================
+
+final currentUsernameProvider = FutureProvider<String?>((ref) async {
+  final user = ref.watch(currentFirebaseUserProvider);
+  if (user == null) return null;
+
+  final repository = ref.watch(usernameRepositoryProvider);
+  return repository.getUsernameByUserId(user.uid);
+});
+
+final usernameAvailabilityProvider =
+    FutureProvider.family<bool, String>((ref, username) async {
+  if (username.isEmpty) return false;
+  final repository = ref.watch(usernameRepositoryProvider);
+  return repository.isUsernameAvailable(username);
+});
+
+// ============================================
+// Household Request Providers
+// ============================================
+
+final receivedRequestsProvider = StreamProvider<List<HouseholdRequest>>((ref) {
+  final user = ref.watch(currentFirebaseUserProvider);
+  if (user == null) return Stream.value([]);
+
+  final repository = ref.watch(householdRequestRepositoryProvider);
+  return repository.watchReceivedRequests(user.uid);
+});
+
+final sentRequestsProvider = StreamProvider<List<HouseholdRequest>>((ref) {
+  final user = ref.watch(currentFirebaseUserProvider);
+  if (user == null) return Stream.value([]);
+
+  final repository = ref.watch(householdRequestRepositoryProvider);
+  return repository.watchSentRequests(user.uid);
+});
+
+final pendingRequestsCountProvider = Provider<int>((ref) {
+  final requests = ref.watch(receivedRequestsProvider).value ?? [];
+  return requests.where((r) => r.isPending).length;
+});
+
+// ============================================
+// Actions State & Notifier
+// ============================================
+
 class HouseholdActionsState {
   final bool isLoading;
   final String? error;
@@ -102,17 +236,24 @@ class HouseholdActionsState {
   }
 }
 
-// Household Actions Notifier
 class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   @override
   HouseholdActionsState build() {
     return const HouseholdActionsState();
   }
 
-  HouseholdRepository get _repository => ref.read(householdRepositoryProvider);
+  User? get _currentUser => ref.read(currentFirebaseUserProvider);
+  HouseholdRepository get _householdRepository =>
+      ref.read(householdRepositoryProvider);
+  UsernameRepository get _usernameRepository =>
+      ref.read(usernameRepositoryProvider);
+
+  // ============================================
+  // Household Actions
+  // ============================================
 
   Future<Household?> createHousehold(String name) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _currentUser;
     if (user == null) {
       state = state.copyWith(error: '로그인이 필요합니다');
       return null;
@@ -129,11 +270,11 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
         email: user.email,
       );
 
-      final household = await _repository.createHousehold(name, user.uid, member);
-      await _repository.setUserHouseholdId(user.uid, household.id);
+      final household =
+          await _householdRepository.createHousehold(name, user.uid, member);
+      await _householdRepository.setUserHouseholdId(user.uid, household.id);
 
-      // Migrate existing data
-      await _repository.migrateUserDataToHousehold(
+      await _householdRepository.migrateUserDataToHousehold(
         userId: user.uid,
         householdId: household.id,
       );
@@ -147,7 +288,7 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   }
 
   Future<bool> joinHouseholdWithCode(String code) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _currentUser;
     if (user == null) {
       state = state.copyWith(error: '로그인이 필요합니다');
       return false;
@@ -155,7 +296,8 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
 
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final inviteCode = await _repository.getInviteCodeByCode(code.toUpperCase());
+      final inviteCode =
+          await _householdRepository.getInviteCodeByCode(code.toUpperCase());
       if (inviteCode == null) {
         state = state.copyWith(isLoading: false, error: '유효하지 않은 초대 코드입니다');
         return false;
@@ -168,19 +310,20 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
 
       final member = HouseholdMember(
         id: user.uid,
-        role: HouseholdRole.viewer, // Default role for invited users
+        role: HouseholdRole.viewer,
         joinedAt: DateTime.now(),
         displayName: user.displayName,
         photoUrl: user.photoURL,
         email: user.email,
       );
 
-      await _repository.addMember(inviteCode.householdId, member);
-      await _repository.setUserHouseholdId(user.uid, inviteCode.householdId);
-      await _repository.markInviteCodeUsed(inviteCode.householdId, inviteCode.id);
+      await _householdRepository.addMember(inviteCode.householdId, member);
+      await _householdRepository.setUserHouseholdId(
+          user.uid, inviteCode.householdId);
+      await _householdRepository.markInviteCodeUsed(
+          inviteCode.householdId, inviteCode.id);
 
-      // Notify owner of new member
-      await _repository.notifyOwnerOfNewMember(
+      await _householdRepository.notifyOwnerOfNewMember(
         householdId: inviteCode.householdId,
         newMemberName: user.displayName ?? user.email ?? '新しいメンバー',
       );
@@ -194,15 +337,16 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   }
 
   Future<InviteCode?> generateInviteCode() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _currentUser;
     if (user == null) return null;
 
-    final householdId = await _repository.getUserHouseholdId(user.uid);
+    final householdId = await _householdRepository.getUserHouseholdId(user.uid);
     if (householdId == null) return null;
 
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final inviteCode = await _repository.generateInviteCode(householdId, user.uid);
+      final inviteCode =
+          await _householdRepository.generateInviteCode(householdId, user.uid);
       state = state.copyWith(isLoading: false);
       return inviteCode;
     } catch (e) {
@@ -212,15 +356,16 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   }
 
   Future<bool> updateMemberRole(String memberId, HouseholdRole newRole) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _currentUser;
     if (user == null) return false;
 
-    final householdId = await _repository.getUserHouseholdId(user.uid);
+    final householdId = await _householdRepository.getUserHouseholdId(user.uid);
     if (householdId == null) return false;
 
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repository.updateMemberRole(householdId, memberId, newRole);
+      await _householdRepository.updateMemberRole(
+          householdId, memberId, newRole);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -230,16 +375,16 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   }
 
   Future<bool> removeMember(String memberId) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _currentUser;
     if (user == null) return false;
 
-    final householdId = await _repository.getUserHouseholdId(user.uid);
+    final householdId = await _householdRepository.getUserHouseholdId(user.uid);
     if (householdId == null) return false;
 
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repository.removeMember(householdId, memberId);
-      await _repository.setUserHouseholdId(memberId, null);
+      await _householdRepository.removeMember(householdId, memberId);
+      await _householdRepository.setUserHouseholdId(memberId, null);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -249,37 +394,32 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   }
 
   Future<bool> leaveHousehold() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _currentUser;
     if (user == null) return false;
 
-    final householdId = await _repository.getUserHouseholdId(user.uid);
+    final householdId = await _householdRepository.getUserHouseholdId(user.uid);
     if (householdId == null) return false;
 
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final household = await _repository.getHousehold(householdId);
+      final household = await _householdRepository.getHousehold(householdId);
       if (household == null) return false;
 
-      // Check if user is the only member
       if (household.memberCount == 1) {
-        // Delete the entire household
-        await _repository.deleteHousehold(householdId);
+        await _householdRepository.deleteHousehold(householdId);
       } else if (household.isOwner(user.uid)) {
-        // Owner must transfer ownership first
-        state = state.copyWith(isLoading: false, error: '소유권을 이전한 후 탈퇴할 수 있습니다');
+        state =
+            state.copyWith(isLoading: false, error: '소유권을 이전한 후 탈퇴할 수 있습니다');
         return false;
       } else {
-        // Remove member from household
-        await _repository.removeMember(householdId, user.uid);
-
-        // Notify owner of member leaving
-        await _repository.notifyOwnerOfMemberLeft(
+        await _householdRepository.removeMember(householdId, user.uid);
+        await _householdRepository.notifyOwnerOfMemberLeft(
           householdId: householdId,
           memberName: user.displayName ?? user.email ?? 'メンバー',
         );
       }
 
-      await _repository.setUserHouseholdId(user.uid, null);
+      await _householdRepository.setUserHouseholdId(user.uid, null);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -289,27 +429,20 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   }
 
   // ============================================
-  // Username Methods
+  // Username Actions (via UseCase)
   // ============================================
 
-  /// Register a username for the current user
   Future<bool> registerUsername(String username) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _currentUser;
     if (user == null) {
       state = state.copyWith(error: '로그인이 필요합니다');
       return false;
     }
 
-    // Validate username format (alphanumeric, 3-20 chars)
-    final usernameRegex = RegExp(r'^[a-zA-Z0-9]{3,20}$');
-    if (!usernameRegex.hasMatch(username)) {
-      state = state.copyWith(error: '아이디는 영문과 숫자만 사용하여 3-20자로 입력해주세요');
-      return false;
-    }
-
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repository.registerUsername(user.uid, username);
+      final useCase = ref.read(registerUsernameUseCaseProvider);
+      await useCase(userId: user.uid, username: username);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -319,14 +452,13 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   }
 
   // ============================================
-  // User Search Methods
+  // User Search Actions
   // ============================================
 
-  /// Search for a user by username
   Future<UserProfile?> searchUserByUsername(String username) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final profile = await _repository.findUserByUsername(username);
+      final profile = await _usernameRepository.findUserByUsername(username);
       state = state.copyWith(isLoading: false);
       return profile;
     } catch (e) {
@@ -336,64 +468,24 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   }
 
   // ============================================
-  // Household Request Methods
+  // Household Request Actions (via UseCase)
   // ============================================
 
-  /// Send a household request to another user
   Future<bool> sendHouseholdRequest(UserProfile receiver) async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _currentUser;
     if (user == null) {
       state = state.copyWith(error: '로그인이 필요합니다');
       return false;
     }
 
-    // Get current user's username
-    final senderUsername = await _repository.getUsernameByUserId(user.uid);
-    if (senderUsername == null) {
-      state = state.copyWith(error: '먼저 아이디를 등록해주세요');
-      return false;
-    }
-
-    // Get current household
-    final householdId = await _repository.getUserHouseholdId(user.uid);
-    if (householdId == null) {
-      state = state.copyWith(error: '가구가 없습니다');
-      return false;
-    }
-
-    final household = await _repository.getHousehold(householdId);
-    if (household == null) {
-      state = state.copyWith(error: '가구를 찾을 수 없습니다');
-      return false;
-    }
-
-    // Check if already a member
-    if (household.isMember(receiver.id)) {
-      state = state.copyWith(error: '이미 가구 멤버입니다');
-      return false;
-    }
-
-    // Check if request already exists
-    final existingRequest = await _repository.hasExistingRequest(
-      senderId: user.uid,
-      receiverId: receiver.id,
-    );
-    if (existingRequest) {
-      state = state.copyWith(error: '이미 요청을 보냈습니다');
-      return false;
-    }
-
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repository.createHouseholdRequest(
+      final useCase = ref.read(sendHouseholdRequestUseCaseProvider);
+      await useCase(
         senderId: user.uid,
-        senderUsername: senderUsername,
         senderDisplayName: user.displayName,
         senderPhotoUrl: user.photoURL,
-        receiverId: receiver.id,
-        receiverUsername: receiver.username,
-        householdId: householdId,
-        householdName: household.name,
+        receiver: receiver,
       );
       state = state.copyWith(isLoading: false);
       return true;
@@ -403,11 +495,23 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
     }
   }
 
-  /// Accept a household request
   Future<bool> acceptRequest(String requestId) async {
+    final user = _currentUser;
+    if (user == null) {
+      state = state.copyWith(error: '로그인이 필요합니다');
+      return false;
+    }
+
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repository.acceptHouseholdRequest(requestId);
+      final useCase = ref.read(acceptHouseholdRequestUseCaseProvider);
+      await useCase(
+        requestId: requestId,
+        receiverId: user.uid,
+        receiverDisplayName: user.displayName,
+        receiverPhotoUrl: user.photoURL,
+        receiverEmail: user.email,
+      );
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -416,11 +520,17 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
     }
   }
 
-  /// Reject a household request
   Future<bool> rejectRequest(String requestId) async {
+    final user = _currentUser;
+    if (user == null) {
+      state = state.copyWith(error: '로그인이 필요합니다');
+      return false;
+    }
+
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repository.rejectHouseholdRequest(requestId);
+      final useCase = ref.read(rejectHouseholdRequestUseCaseProvider);
+      await useCase(requestId: requestId, receiverId: user.uid);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -429,11 +539,17 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
     }
   }
 
-  /// Cancel a sent request
   Future<bool> cancelRequest(String requestId) async {
+    final user = _currentUser;
+    if (user == null) {
+      state = state.copyWith(error: '로그인이 필요합니다');
+      return false;
+    }
+
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _repository.cancelHouseholdRequest(requestId);
+      final useCase = ref.read(cancelHouseholdRequestUseCaseProvider);
+      await useCase(requestId: requestId, senderId: user.uid);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
@@ -448,16 +564,18 @@ final householdActionsProvider =
   return HouseholdActionsNotifier();
 });
 
-// Auto-migration provider (creates household for existing users)
+// ============================================
+// Auto-migration Provider
+// ============================================
+
 final autoMigrationProvider = FutureProvider<void>((ref) async {
-  final user = FirebaseAuth.instance.currentUser;
+  final user = ref.watch(currentFirebaseUserProvider);
   if (user == null) return;
 
   final repository = ref.watch(householdRepositoryProvider);
   final householdId = await repository.getUserHouseholdId(user.uid);
 
   if (householdId == null) {
-    // Auto-create household for existing users
     final member = HouseholdMember(
       id: user.uid,
       role: HouseholdRole.owner,
@@ -479,53 +597,4 @@ final autoMigrationProvider = FutureProvider<void>((ref) async {
       householdId: household.id,
     );
   }
-});
-
-// ============================================
-// Username Providers
-// ============================================
-
-// Current user's username
-final currentUsernameProvider = FutureProvider<String?>((ref) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return null;
-
-  final repository = ref.watch(householdRepositoryProvider);
-  return repository.getUsernameByUserId(user.uid);
-});
-
-// Check if username is available
-final usernameAvailabilityProvider =
-    FutureProvider.family<bool, String>((ref, username) async {
-  if (username.isEmpty) return false;
-  final repository = ref.watch(householdRepositoryProvider);
-  return repository.isUsernameAvailable(username);
-});
-
-// ============================================
-// Household Request Providers
-// ============================================
-
-// Received requests (real-time)
-final receivedRequestsProvider = StreamProvider<List<HouseholdRequest>>((ref) {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return Stream.value([]);
-
-  final repository = ref.watch(householdRepositoryProvider);
-  return repository.watchReceivedRequests(user.uid);
-});
-
-// Sent requests (real-time)
-final sentRequestsProvider = StreamProvider<List<HouseholdRequest>>((ref) {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return Stream.value([]);
-
-  final repository = ref.watch(householdRepositoryProvider);
-  return repository.watchSentRequests(user.uid);
-});
-
-// Pending received requests count (for badge)
-final pendingRequestsCountProvider = Provider<int>((ref) {
-  final requests = ref.watch(receivedRequestsProvider).value ?? [];
-  return requests.where((r) => r.isPending).length;
 });

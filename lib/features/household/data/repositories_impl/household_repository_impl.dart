@@ -1,7 +1,5 @@
-import '../../../auth/domain/entities/user_profile.dart';
 import '../../domain/entities/household.dart';
 import '../../domain/entities/household_member.dart';
-import '../../domain/entities/household_request.dart';
 import '../../domain/entities/household_role.dart';
 import '../../domain/entities/invite_code.dart';
 import '../../domain/repositories/household_repository.dart';
@@ -125,103 +123,6 @@ class HouseholdRepositoryImpl implements HouseholdRepository {
     return _dataSource.notifyOwnerOfMemberLeft(
       householdId: householdId,
       memberName: memberName,
-    );
-  }
-
-  // Username management
-  @override
-  Future<bool> isUsernameAvailable(String username) {
-    return _dataSource.isUsernameAvailable(username);
-  }
-
-  @override
-  Future<void> registerUsername(String userId, String username) {
-    return _dataSource.registerUsername(userId, username);
-  }
-
-  @override
-  Future<String?> getUsernameByUserId(String userId) {
-    return _dataSource.getUsernameByUserId(userId);
-  }
-
-  // User search
-  @override
-  Future<UserProfile?> findUserByUsername(String username) {
-    return _dataSource.findUserByUsername(username);
-  }
-
-  // Household requests
-  @override
-  Future<HouseholdRequest> createHouseholdRequest({
-    required String senderId,
-    required String senderUsername,
-    required String? senderDisplayName,
-    required String? senderPhotoUrl,
-    required String receiverId,
-    required String receiverUsername,
-    required String householdId,
-    required String householdName,
-  }) {
-    return _dataSource.createHouseholdRequest(
-      senderId: senderId,
-      senderUsername: senderUsername,
-      senderDisplayName: senderDisplayName,
-      senderPhotoUrl: senderPhotoUrl,
-      receiverId: receiverId,
-      receiverUsername: receiverUsername,
-      householdId: householdId,
-      householdName: householdName,
-    );
-  }
-
-  @override
-  Future<List<HouseholdRequest>> getReceivedRequests(String userId) {
-    return _dataSource.getReceivedRequests(userId);
-  }
-
-  @override
-  Stream<List<HouseholdRequest>> watchReceivedRequests(String userId) {
-    return _dataSource.watchReceivedRequests(userId);
-  }
-
-  @override
-  Future<List<HouseholdRequest>> getSentRequests(String userId) {
-    return _dataSource.getSentRequests(userId);
-  }
-
-  @override
-  Stream<List<HouseholdRequest>> watchSentRequests(String userId) {
-    return _dataSource.watchSentRequests(userId);
-  }
-
-  @override
-  Future<HouseholdRequest?> getHouseholdRequest(String requestId) {
-    return _dataSource.getHouseholdRequest(requestId);
-  }
-
-  @override
-  Future<void> acceptHouseholdRequest(String requestId) {
-    return _dataSource.acceptHouseholdRequest(requestId);
-  }
-
-  @override
-  Future<void> rejectHouseholdRequest(String requestId) {
-    return _dataSource.rejectHouseholdRequest(requestId);
-  }
-
-  @override
-  Future<void> cancelHouseholdRequest(String requestId) {
-    return _dataSource.cancelHouseholdRequest(requestId);
-  }
-
-  @override
-  Future<bool> hasExistingRequest({
-    required String senderId,
-    required String receiverId,
-  }) {
-    return _dataSource.hasExistingRequest(
-      senderId: senderId,
-      receiverId: receiverId,
     );
   }
 }
