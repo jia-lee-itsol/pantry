@@ -1,12 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../auth/domain/entities/user_profile.dart';
-import '../../data/datasources/household_firestore_datasource.dart';
-import '../../data/datasources/username_firestore_datasource.dart';
-import '../../data/datasources/household_request_firestore_datasource.dart';
-import '../../data/repositories_impl/household_repository_impl.dart';
-import '../../data/repositories_impl/username_repository_impl.dart';
-import '../../data/repositories_impl/household_request_repository_impl.dart';
 import '../../domain/entities/household.dart';
 import '../../domain/entities/household_member.dart';
 import '../../domain/entities/household_request.dart';
@@ -21,42 +15,29 @@ import '../../domain/usecases/accept_household_request_usecase.dart';
 import '../../domain/usecases/reject_household_request_usecase.dart';
 import '../../domain/usecases/cancel_household_request_usecase.dart';
 import '../../domain/usecases/notify_user_usecase.dart';
+import '../../domain/usecases/create_household_usecase.dart';
+import '../../domain/usecases/join_household_usecase.dart';
+import '../../domain/usecases/generate_invite_code_usecase.dart';
+import '../../domain/usecases/update_member_role_usecase.dart';
+import '../../domain/usecases/remove_member_usecase.dart';
+import '../../domain/usecases/leave_household_usecase.dart';
+import '../../domain/usecases/search_user_usecase.dart';
+import '../../../../core/services/household_service.dart';
 
 // ============================================
-// DataSource Providers
-// ============================================
-
-final householdDataSourceProvider = Provider<HouseholdFirestoreDataSource>((ref) {
-  return HouseholdFirestoreDataSource();
-});
-
-final usernameDataSourceProvider = Provider<UsernameFirestoreDataSource>((ref) {
-  return UsernameFirestoreDataSource();
-});
-
-final householdRequestDataSourceProvider =
-    Provider<HouseholdRequestFirestoreDataSource>((ref) {
-  return HouseholdRequestFirestoreDataSource();
-});
-
-// ============================================
-// Repository Providers
+// Repository Providers (uses core services)
 // ============================================
 
 final householdRepositoryProvider = Provider<HouseholdRepository>((ref) {
-  final dataSource = ref.watch(householdDataSourceProvider);
-  return HouseholdRepositoryImpl(dataSource);
+  return ref.watch(householdServiceProvider);
 });
 
 final usernameRepositoryProvider = Provider<UsernameRepository>((ref) {
-  final dataSource = ref.watch(usernameDataSourceProvider);
-  return UsernameRepositoryImpl(dataSource);
+  return ref.watch(usernameServiceProvider);
 });
 
-final householdRequestRepositoryProvider =
-    Provider<HouseholdRequestRepository>((ref) {
-  final dataSource = ref.watch(householdRequestDataSourceProvider);
-  return HouseholdRequestRepositoryImpl(dataSource);
+final householdRequestRepositoryProvider = Provider<HouseholdRequestRepository>((ref) {
+  return ref.watch(householdRequestServiceProvider);
 });
 
 // ============================================
@@ -72,8 +53,7 @@ final registerUsernameUseCaseProvider = Provider<RegisterUsernameUseCase>((ref) 
   return RegisterUsernameUseCase(repository);
 });
 
-final sendHouseholdRequestUseCaseProvider =
-    Provider<SendHouseholdRequestUseCase>((ref) {
+final sendHouseholdRequestUseCaseProvider = Provider<SendHouseholdRequestUseCase>((ref) {
   return SendHouseholdRequestUseCase(
     householdRepository: ref.watch(householdRepositoryProvider),
     requestRepository: ref.watch(householdRequestRepositoryProvider),
@@ -82,8 +62,7 @@ final sendHouseholdRequestUseCaseProvider =
   );
 });
 
-final acceptHouseholdRequestUseCaseProvider =
-    Provider<AcceptHouseholdRequestUseCase>((ref) {
+final acceptHouseholdRequestUseCaseProvider = Provider<AcceptHouseholdRequestUseCase>((ref) {
   return AcceptHouseholdRequestUseCase(
     householdRepository: ref.watch(householdRepositoryProvider),
     requestRepository: ref.watch(householdRequestRepositoryProvider),
@@ -91,20 +70,53 @@ final acceptHouseholdRequestUseCaseProvider =
   );
 });
 
-final rejectHouseholdRequestUseCaseProvider =
-    Provider<RejectHouseholdRequestUseCase>((ref) {
+final rejectHouseholdRequestUseCaseProvider = Provider<RejectHouseholdRequestUseCase>((ref) {
   final repository = ref.watch(householdRequestRepositoryProvider);
   return RejectHouseholdRequestUseCase(repository);
 });
 
-final cancelHouseholdRequestUseCaseProvider =
-    Provider<CancelHouseholdRequestUseCase>((ref) {
+final cancelHouseholdRequestUseCaseProvider = Provider<CancelHouseholdRequestUseCase>((ref) {
   final repository = ref.watch(householdRequestRepositoryProvider);
   return CancelHouseholdRequestUseCase(repository);
 });
 
+final createHouseholdUseCaseProvider = Provider<CreateHouseholdUseCase>((ref) {
+  final repository = ref.watch(householdRepositoryProvider);
+  return CreateHouseholdUseCase(repository);
+});
+
+final joinHouseholdUseCaseProvider = Provider<JoinHouseholdUseCase>((ref) {
+  final repository = ref.watch(householdRepositoryProvider);
+  return JoinHouseholdUseCase(repository);
+});
+
+final generateInviteCodeUseCaseProvider = Provider<GenerateInviteCodeUseCase>((ref) {
+  final repository = ref.watch(householdRepositoryProvider);
+  return GenerateInviteCodeUseCase(repository);
+});
+
+final updateMemberRoleUseCaseProvider = Provider<UpdateMemberRoleUseCase>((ref) {
+  final repository = ref.watch(householdRepositoryProvider);
+  return UpdateMemberRoleUseCase(repository);
+});
+
+final removeMemberUseCaseProvider = Provider<RemoveMemberUseCase>((ref) {
+  final repository = ref.watch(householdRepositoryProvider);
+  return RemoveMemberUseCase(repository);
+});
+
+final leaveHouseholdUseCaseProvider = Provider<LeaveHouseholdUseCase>((ref) {
+  final repository = ref.watch(householdRepositoryProvider);
+  return LeaveHouseholdUseCase(repository);
+});
+
+final searchUserUseCaseProvider = Provider<SearchUserUseCase>((ref) {
+  final repository = ref.watch(usernameRepositoryProvider);
+  return SearchUserUseCase(repository);
+});
+
 // ============================================
-// Auth State Provider (for clean architecture)
+// Auth State Provider
 // ============================================
 
 final currentFirebaseUserProvider = Provider<User?>((ref) {
@@ -180,8 +192,7 @@ final currentUsernameProvider = FutureProvider<String?>((ref) async {
   return repository.getUsernameByUserId(user.uid);
 });
 
-final usernameAvailabilityProvider =
-    FutureProvider.family<bool, String>((ref, username) async {
+final usernameAvailabilityProvider = FutureProvider.family<bool, String>((ref, username) async {
   if (username.isEmpty) return false;
   final repository = ref.watch(usernameRepositoryProvider);
   return repository.isUsernameAvailable(username);
@@ -243,13 +254,9 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   }
 
   User? get _currentUser => ref.read(currentFirebaseUserProvider);
-  HouseholdRepository get _householdRepository =>
-      ref.read(householdRepositoryProvider);
-  UsernameRepository get _usernameRepository =>
-      ref.read(usernameRepositoryProvider);
 
   // ============================================
-  // Household Actions
+  // Household Actions (via UseCases)
   // ============================================
 
   Future<Household?> createHousehold(String name) async {
@@ -270,13 +277,11 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
         email: user.email,
       );
 
-      final household =
-          await _householdRepository.createHousehold(name, user.uid, member);
-      await _householdRepository.setUserHouseholdId(user.uid, household.id);
-
-      await _householdRepository.migrateUserDataToHousehold(
+      final useCase = ref.read(createHouseholdUseCaseProvider);
+      final household = await useCase(
+        name: name,
         userId: user.uid,
-        householdId: household.id,
+        member: member,
       );
 
       state = state.copyWith(isLoading: false);
@@ -296,18 +301,6 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
 
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final inviteCode =
-          await _householdRepository.getInviteCodeByCode(code.toUpperCase());
-      if (inviteCode == null) {
-        state = state.copyWith(isLoading: false, error: '유효하지 않은 초대 코드입니다');
-        return false;
-      }
-
-      if (!inviteCode.isValid) {
-        state = state.copyWith(isLoading: false, error: '만료된 초대 코드입니다');
-        return false;
-      }
-
       final member = HouseholdMember(
         id: user.uid,
         role: HouseholdRole.viewer,
@@ -317,15 +310,12 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
         email: user.email,
       );
 
-      await _householdRepository.addMember(inviteCode.householdId, member);
-      await _householdRepository.setUserHouseholdId(
-          user.uid, inviteCode.householdId);
-      await _householdRepository.markInviteCodeUsed(
-          inviteCode.householdId, inviteCode.id);
-
-      await _householdRepository.notifyOwnerOfNewMember(
-        householdId: inviteCode.householdId,
-        newMemberName: user.displayName ?? user.email ?? '新しいメンバー',
+      final useCase = ref.read(joinHouseholdUseCaseProvider);
+      await useCase(
+        code: code,
+        userId: user.uid,
+        member: member,
+        memberDisplayName: user.displayName ?? user.email ?? '新しいメンバー',
       );
 
       state = state.copyWith(isLoading: false);
@@ -340,13 +330,10 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
     final user = _currentUser;
     if (user == null) return null;
 
-    final householdId = await _householdRepository.getUserHouseholdId(user.uid);
-    if (householdId == null) return null;
-
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final inviteCode =
-          await _householdRepository.generateInviteCode(householdId, user.uid);
+      final useCase = ref.read(generateInviteCodeUseCaseProvider);
+      final inviteCode = await useCase(userId: user.uid);
       state = state.copyWith(isLoading: false);
       return inviteCode;
     } catch (e) {
@@ -359,15 +346,16 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
     final user = _currentUser;
     if (user == null) return false;
 
-    final householdId = await _householdRepository.getUserHouseholdId(user.uid);
-    if (householdId == null) return false;
-
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _householdRepository.updateMemberRole(
-          householdId, memberId, newRole);
+      final useCase = ref.read(updateMemberRoleUseCaseProvider);
+      final result = await useCase(
+        userId: user.uid,
+        memberId: memberId,
+        newRole: newRole,
+      );
       state = state.copyWith(isLoading: false);
-      return true;
+      return result;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
@@ -378,15 +366,15 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
     final user = _currentUser;
     if (user == null) return false;
 
-    final householdId = await _householdRepository.getUserHouseholdId(user.uid);
-    if (householdId == null) return false;
-
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _householdRepository.removeMember(householdId, memberId);
-      await _householdRepository.setUserHouseholdId(memberId, null);
+      final useCase = ref.read(removeMemberUseCaseProvider);
+      final result = await useCase(
+        userId: user.uid,
+        memberId: memberId,
+      );
       state = state.copyWith(isLoading: false);
-      return true;
+      return result;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
@@ -397,31 +385,16 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
     final user = _currentUser;
     if (user == null) return false;
 
-    final householdId = await _householdRepository.getUserHouseholdId(user.uid);
-    if (householdId == null) return false;
-
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final household = await _householdRepository.getHousehold(householdId);
-      if (household == null) return false;
-
-      if (household.memberCount == 1) {
-        await _householdRepository.deleteHousehold(householdId);
-      } else if (household.isOwner(user.uid)) {
-        state =
-            state.copyWith(isLoading: false, error: '소유권을 이전한 후 탈퇴할 수 있습니다');
-        return false;
-      } else {
-        await _householdRepository.removeMember(householdId, user.uid);
-        await _householdRepository.notifyOwnerOfMemberLeft(
-          householdId: householdId,
-          memberName: user.displayName ?? user.email ?? 'メンバー',
-        );
-      }
-
-      await _householdRepository.setUserHouseholdId(user.uid, null);
+      final useCase = ref.read(leaveHouseholdUseCaseProvider);
+      final result = await useCase(
+        userId: user.uid,
+        userDisplayName: user.displayName,
+        userEmail: user.email,
+      );
       state = state.copyWith(isLoading: false);
-      return true;
+      return result;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
@@ -452,13 +425,14 @@ class HouseholdActionsNotifier extends Notifier<HouseholdActionsState> {
   }
 
   // ============================================
-  // User Search Actions
+  // User Search Actions (via UseCase)
   // ============================================
 
   Future<UserProfile?> searchUserByUsername(String username) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final profile = await _usernameRepository.findUserByUsername(username);
+      final useCase = ref.read(searchUserUseCaseProvider);
+      final profile = await useCase(username);
       state = state.copyWith(isLoading: false);
       return profile;
     } catch (e) {

@@ -1,6 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/datasources/category_local_datasource.dart';
-import '../../data/repositories_impl/category_repository_impl.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/repositories/category_repository.dart';
 import '../../domain/usecases/get_categories_usecase.dart';
@@ -8,16 +6,11 @@ import '../../domain/usecases/add_category_usecase.dart';
 import '../../domain/usecases/update_category_usecase.dart';
 import '../../domain/usecases/delete_category_usecase.dart';
 import '../../domain/usecases/reorder_categories_usecase.dart';
+import '../../../../core/services/category_service.dart';
 
-// DataSource Provider
-final categoryDataSourceProvider = Provider<CategoryLocalDataSource>((ref) {
-  return CategoryLocalDataSource();
-});
-
-// Repository Provider
+// Repository Provider (uses core service)
 final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
-  final dataSource = ref.watch(categoryDataSourceProvider);
-  return CategoryRepositoryImpl(dataSource);
+  return ref.watch(categoryServiceProvider);
 });
 
 // UseCase Providers

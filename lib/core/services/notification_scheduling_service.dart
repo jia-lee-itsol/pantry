@@ -9,10 +9,13 @@ import 'notification_settings_service.dart';
 class NotificationSchedulingService {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
-  final NotificationSettingsService _settingsService =
-      NotificationSettingsService();
+  final NotificationSettingsService _settingsService;
 
   bool _isInitialized = false;
+
+  NotificationSchedulingService({
+    NotificationSettingsService? settingsService,
+  }) : _settingsService = settingsService ?? NotificationSettingsService();
 
   /// 알림 서비스 초기화
   Future<void> initialize() async {

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../domain/entities/recipe.dart';
+import '../models/recipe_model.dart';
 import '../../../fridge/domain/entities/fridge_item.dart';
 import '../../../stock/domain/entities/stock_item.dart';
 
@@ -15,8 +15,8 @@ class RecipeAIDataSource {
   /// [stockItems]: 재고 목록
   /// [count]: 추천받을 레시피 개수
   ///
-  /// 반환: 추천 레시피 목록
-  Future<List<Recipe>> getRecipeRecommendations({
+  /// 반환: 추천 레시피 모델 목록
+  Future<List<RecipeModel>> getRecipeRecommendations({
     required List<FridgeItem> fridgeItems,
     required List<StockItem> stockItems,
     required int count,
@@ -117,8 +117,8 @@ JSONのみを返してください。説明や追加のテキストは不要で�
     return buffer.toString();
   }
 
-  /// JSON 응답을 Recipe 리스트로 파싱합니다.
-  List<Recipe> _parseRecipesFromJson(String jsonText) {
+  /// JSON 응답을 RecipeModel 리스트로 파싱합니다.
+  List<RecipeModel> _parseRecipesFromJson(String jsonText) {
     try {
       // JSON 배열 부분만 추출 (```json 또는 ``` 제거)
       var cleanedText = jsonText.trim();
@@ -157,25 +157,9 @@ JSONのみを返してください。説明や追加のテキストは不要で�
               return null;
             }
 
-            final map = item;
-            return Recipe(
-              title: map['title'] as String? ?? '',
-              description: map['description'] as String? ?? '',
-              ingredients:
-                  (map['ingredients'] as List<dynamic>?)
-                      ?.map((e) => e.toString())
-                      .toList() ??
-                  [],
-              instructions:
-                  (map['instructions'] as List<dynamic>?)
-                      ?.map((e) => e.toString())
-                      .toList() ??
-                  [],
-              cookingTime: map['cookingTime'] as int?,
-              servings: map['servings'] as int?,
-            );
+            return RecipeModel.fromJson(item);
           })
-          .whereType<Recipe>()
+          .whereType<RecipeModel>()
           .toList();
     } catch (e) {
       debugPrint('JSON 파싱 실패: $e');

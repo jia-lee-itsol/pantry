@@ -4,9 +4,13 @@ import 'package:flutter/foundation.dart';
 /// 데이터 동기화 서비스
 /// Firestore와 로컬 데이터 간의 동기화를 관리하고 충돌을 해결합니다.
 class SyncService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 2);
+
+  SyncService({
+    FirebaseFirestore? firestore,
+  }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// 재시도 로직이 포함된 Firestore 작업 실행
   Future<T> executeWithRetry<T>(

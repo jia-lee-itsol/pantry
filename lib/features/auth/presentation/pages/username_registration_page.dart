@@ -58,7 +58,7 @@ class _UsernameRegistrationPageState
     });
 
     try {
-      final repository = ref.read(householdRepositoryProvider);
+      final repository = ref.read(usernameRepositoryProvider);
       final available = await repository.isUsernameAvailable(username);
 
       if (mounted && _controller.text.toLowerCase() == username.toLowerCase()) {

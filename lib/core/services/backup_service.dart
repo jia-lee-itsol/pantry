@@ -12,13 +12,27 @@ import '../../features/home/data/models/shopping_list_item_model.dart';
 import '../../features/settings/data/models/category_model.dart';
 
 class BackupService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
   static const String _backupCollection = 'backups';
-  final FridgeFirestoreDataSource _fridgeDataSource = FridgeFirestoreDataSource();
-  final StockFirestoreDataSource _stockDataSource = StockFirestoreDataSource();
-  final ShoppingListLocalDataSource _shoppingListDataSource = ShoppingListLocalDataSource();
-  final CategoryLocalDataSource _categoryDataSource = CategoryLocalDataSource();
+  final FridgeFirestoreDataSource _fridgeDataSource;
+  final StockFirestoreDataSource _stockDataSource;
+  final ShoppingListLocalDataSource _shoppingListDataSource;
+  final CategoryLocalDataSource _categoryDataSource;
+
+  BackupService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+    FridgeFirestoreDataSource? fridgeDataSource,
+    StockFirestoreDataSource? stockDataSource,
+    ShoppingListLocalDataSource? shoppingListDataSource,
+    CategoryLocalDataSource? categoryDataSource,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance,
+        _fridgeDataSource = fridgeDataSource ?? FridgeFirestoreDataSource(),
+        _stockDataSource = stockDataSource ?? StockFirestoreDataSource(),
+        _shoppingListDataSource = shoppingListDataSource ?? ShoppingListLocalDataSource(),
+        _categoryDataSource = categoryDataSource ?? CategoryLocalDataSource();
 
   /// 현재 사용자 ID 가져오기
   String? _getCurrentUserId() {

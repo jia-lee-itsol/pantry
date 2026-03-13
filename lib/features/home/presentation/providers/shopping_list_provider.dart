@@ -1,18 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/shopping_list_item.dart';
 import '../../domain/repositories/shopping_list_repository.dart';
-import '../../data/datasources/shopping_list_local_datasource.dart';
-import '../../data/repositories_impl/shopping_list_repository_impl.dart';
+import '../../../../core/services/shopping_list_service.dart';
 
-// DataSource Provider
-final shoppingListDataSourceProvider = Provider<ShoppingListLocalDataSource>((ref) {
-  return ShoppingListLocalDataSource();
-});
-
-// Repository Provider
+// Repository Provider (uses core service)
 final shoppingListRepositoryProvider = Provider<ShoppingListRepository>((ref) {
-  final dataSource = ref.watch(shoppingListDataSourceProvider);
-  return ShoppingListRepositoryImpl(dataSource);
+  return ref.watch(shoppingListServiceProvider);
 });
 
 class ShoppingListNotifier extends AsyncNotifier<List<ShoppingListItem>> {

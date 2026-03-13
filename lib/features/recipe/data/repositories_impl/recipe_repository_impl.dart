@@ -16,11 +16,13 @@ class RecipeRepositoryImpl implements RecipeRepository {
     required List<StockItem> stockItems,
     int count = 3,
   }) async {
-    return await dataSource.getRecipeRecommendations(
+    final models = await dataSource.getRecipeRecommendations(
       fridgeItems: fridgeItems,
       stockItems: stockItems,
       count: count,
     );
+
+    // Model을 Entity로 변환
+    return models.map((model) => model.toEntity()).toList();
   }
 }
-
