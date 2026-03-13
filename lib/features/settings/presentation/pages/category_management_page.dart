@@ -69,8 +69,8 @@ class _CategoryManagementPageState
                 return e.value.copyWith(order: e.key + 1);
               }).toList();
               ref
-                  .read(categoryRepositoryProvider)
-                  .reorderCategories(updated)
+                  .read(reorderCategoriesUseCaseProvider)
+                  .call(updated)
                   .then((_) {
                     ref.invalidate(categoriesProvider);
                   });
@@ -197,8 +197,8 @@ class _CategoryManagementPageState
                 );
 
                 ref
-                    .read(categoryRepositoryProvider)
-                    .addCategory(newCategory)
+                    .read(addCategoryUseCaseProvider)
+                    .call(newCategory)
                     .then((_) {
                       ref.invalidate(categoriesProvider);
                       if (context.mounted) {
@@ -316,8 +316,8 @@ class _CategoryManagementPageState
                 );
 
                 ref
-                    .read(categoryRepositoryProvider)
-                    .updateCategory(updatedCategory)
+                    .read(updateCategoryUseCaseProvider)
+                    .call(updatedCategory)
                     .then((_) {
                       ref.invalidate(categoriesProvider);
                       if (context.mounted) {
@@ -365,8 +365,8 @@ class _CategoryManagementPageState
           TextButton(
             onPressed: () {
               ref
-                  .read(categoryRepositoryProvider)
-                  .deleteCategory(category.id)
+                  .read(deleteCategoryUseCaseProvider)
+                  .call(category.id)
                   .then((_) {
                     ref.invalidate(categoriesProvider);
                     if (context.mounted) {

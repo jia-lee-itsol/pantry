@@ -1,24 +1,31 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/shopping_list_item.dart';
+import '../../domain/repositories/shopping_list_repository.dart';
 import '../../data/datasources/shopping_list_local_datasource.dart';
-import '../../data/models/shopping_list_item_model.dart';
+import '../../data/repositories_impl/shopping_list_repository_impl.dart';
+
+// DataSource Provider
+final shoppingListDataSourceProvider = Provider<ShoppingListLocalDataSource>((ref) {
+  return ShoppingListLocalDataSource();
+});
+
+// Repository Provider
+final shoppingListRepositoryProvider = Provider<ShoppingListRepository>((ref) {
+  final dataSource = ref.watch(shoppingListDataSourceProvider);
+  return ShoppingListRepositoryImpl(dataSource);
+});
 
 class ShoppingListNotifier extends AsyncNotifier<List<ShoppingListItem>> {
-  final _dataSource = ShoppingListLocalDataSource();
+  ShoppingListRepository get _repository => ref.read(shoppingListRepositoryProvider);
 
   @override
   Future<List<ShoppingListItem>> build() async {
-    final models = await _dataSource.getItems();
-    return models.map((model) => model.toEntity()).toList();
+    return _repository.getItems();
   }
 
   Future<void> addItem(ShoppingListItem item) async {
-    final currentState = state.value ?? [];
-    final model = ShoppingListItemModel.fromEntity(item);
-    final models = currentState.map((i) => ShoppingListItemModel.fromEntity(i)).toList();
-    models.add(model);
-    await _dataSource.saveItems(models);
-    state = AsyncValue.data(models.map((m) => m.toEntity()).toList());
+    await _repository.addItem(item);
+    state = AsyncValue.data(await _repository.getItems());
   }
 
   Future<void> toggleItem(String id) async {
@@ -29,36 +36,33 @@ class ShoppingListNotifier extends AsyncNotifier<List<ShoppingListItem>> {
       }
       return item;
     }).toList();
-    final models = updated.map((i) => ShoppingListItemModel.fromEntity(i)).toList();
-    await _dataSource.saveItems(models);
+    await _repository.saveItems(updated);
     state = AsyncValue.data(updated);
   }
 
   Future<void> deleteItem(String id) async {
+    await _repository.deleteItem(id);
     final currentState = state.value ?? [];
     final updated = currentState.where((item) => item.id != id).toList();
-    final models = updated.map((i) => ShoppingListItemModel.fromEntity(i)).toList();
-    await _dataSource.saveItems(models);
     state = AsyncValue.data(updated);
   }
 
   Future<void> markAllCompleted() async {
     final currentState = state.value ?? [];
     final updated = currentState.map((item) => item.copyWith(isCompleted: true)).toList();
-    final models = updated.map((i) => ShoppingListItemModel.fromEntity(i)).toList();
-    await _dataSource.saveItems(models);
+    await _repository.saveItems(updated);
     state = AsyncValue.data(updated);
   }
 
   Future<void> markAllIncomplete() async {
     final currentState = state.value ?? [];
     final updated = currentState.map((item) => item.copyWith(isCompleted: false)).toList();
-    final models = updated.map((i) => ShoppingListItemModel.fromEntity(i)).toList();
-    await _dataSource.saveItems(models);
+    await _repository.saveItems(updated);
     state = AsyncValue.data(updated);
   }
 
   Future<void> updateItem(ShoppingListItem item) async {
+    await _repository.updateItem(item);
     final currentState = state.value ?? [];
     final updated = currentState.map((existingItem) {
       if (existingItem.id == item.id) {
@@ -66,8 +70,6 @@ class ShoppingListNotifier extends AsyncNotifier<List<ShoppingListItem>> {
       }
       return existingItem;
     }).toList();
-    final models = updated.map((i) => ShoppingListItemModel.fromEntity(i)).toList();
-    await _dataSource.saveItems(models);
     state = AsyncValue.data(updated);
   }
 
