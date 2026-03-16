@@ -88,7 +88,8 @@ class _EditFridgeItemBottomSheetState
     );
 
     try {
-      await ref.read(fridgeRepositoryProvider).updateFridgeItem(updatedItem);
+      final updateUseCase = ref.read(updateFridgeItemUseCaseProvider);
+      await updateUseCase(updatedItem);
       if (mounted) {
         Navigator.of(context).pop();
         ref.invalidate(fridgeItemsProvider); // Invalidate to trigger refresh and reschedule notifications
@@ -127,9 +128,8 @@ class _EditFridgeItemBottomSheetState
 
     if (confirmed == true) {
       try {
-        await ref
-            .read(fridgeRepositoryProvider)
-            .deleteFridgeItem(widget.item.id);
+        final deleteUseCase = ref.read(deleteFridgeItemUseCaseProvider);
+        await deleteUseCase(widget.item.id);
         if (mounted) {
           Navigator.of(context).pop();
           ref.invalidate(fridgeItemsProvider);

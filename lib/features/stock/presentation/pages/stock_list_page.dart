@@ -5,7 +5,6 @@ import '../../../../core/design/widgets/app_scaffold.dart';
 import '../../../../core/design/spacing.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../providers/stock_provider.dart';
-import '../../domain/entities/stock_item.dart';
 import '../widgets/edit_stock_item_bottom_sheet.dart';
 import 'add_stock_item_page.dart';
 
@@ -26,90 +25,6 @@ class _StockListPageState extends ConsumerState<StockListPage> {
     super.dispose();
   }
 
-  /// 아이템명으로부터 카테고리를 추측합니다.
-  String _getCategoryFromName(String name) {
-    final lowerName = name.toLowerCase();
-
-    // 통조림/가공식품 (더 구체적인 카테고리를 먼저 확인)
-    if (lowerName.contains('缶詰') ||
-        (lowerName.contains('缶') && !lowerName.contains('飲料')) ||
-        lowerName.contains('canned')) {
-      return '缶詰/加工食品';
-    }
-
-    // 飲料水/飲み物
-    if (lowerName.contains('水') ||
-        lowerName.contains('飲料') ||
-        (lowerName.contains('缶') && lowerName.contains('飲料')) ||
-        lowerName.contains('drink') ||
-        lowerName.contains('water')) {
-      return '飲料水/飲み物';
-    }
-
-    // 主食類
-    if (lowerName.contains('米') ||
-        lowerName.contains('ラーメン') ||
-        lowerName.contains('乾パン') ||
-        lowerName.contains('rice') ||
-        lowerName.contains('noodle') ||
-        lowerName.contains('ramen')) {
-      return '主食類';
-    }
-
-    // 乳製品
-    if (lowerName.contains('牛乳') ||
-        lowerName.contains('チーズ') ||
-        lowerName.contains('milk') ||
-        lowerName.contains('cheese')) {
-      return '乳製品';
-    }
-
-    // その他
-    return 'その他';
-  }
-
-  /// 아이템을 카테고리별로 그룹화합니다.
-  Map<String, List<StockItem>> _groupByCategory(List<StockItem> items) {
-    final Map<String, List<StockItem>> grouped = {};
-
-    for (final item in items) {
-      // 아이템에 카테고리가 있으면 사용하고, 없으면 이름으로부터 추측
-      final category = item.category ?? _getCategoryFromName(item.name);
-      grouped.putIfAbsent(category, () => []).add(item);
-    }
-
-    // 각 카테고리 내 아이템을 유통기한 순으로 정렬 (긴 순)
-    // 유통기한이 없는 경우 맨 아래에
-    for (final category in grouped.keys) {
-      grouped[category]!.sort((a, b) {
-        if (a.expiryDate == null && b.expiryDate == null) return 0;
-        if (a.expiryDate == null) return 1;
-        if (b.expiryDate == null) return -1;
-        return b.expiryDate!.compareTo(a.expiryDate!);
-      });
-    }
-
-    // 카테고리 순서로 정렬 (식수/음료, 주식류, 통조림/가공식품, 유제품, 기타)
-    final categoryOrder = ['飲料水/飲み物', '主食類', '缶詰/加工食品', '乳製品', 'その他'];
-    final sortedGrouped = <String, List<StockItem>>{};
-
-    for (final category in categoryOrder) {
-      if (grouped.containsKey(category)) {
-        sortedGrouped[category] = grouped[category]!;
-      }
-    }
-
-    // 기타 카테고리에 포함되지 않는 항목 추가
-    for (final entry in grouped.entries) {
-      if (!categoryOrder.contains(entry.key)) {
-        sortedGrouped[entry.key] = entry.value;
-      }
-    }
-
-    return sortedGrouped;
-  }
-
-  /// 카테고리에 해당하는 아이콘을 반환합니다.
   IconData _getCategoryIcon(String category) {
     switch (category) {
       case '飲料水/飲み物':
@@ -256,8 +171,9 @@ class _StockListPageState extends ConsumerState<StockListPage> {
             );
           }
 
-          // 카테고리별로 그룹화
-          final groupedItems = _groupByCategory(filteredItems);
+          // 카테고리별로 그룹화 (Use Case 사용)
+          final groupStockItemsUseCase = ref.read(groupStockItemsUseCaseProvider);
+          final groupedItems = groupStockItemsUseCase(filteredItems);
 
           return ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -411,9 +327,8 @@ class _StockListPageState extends ConsumerState<StockListPage> {
 
                                       if (confirmed == true && mounted) {
                                         try {
-                                          await ref
-                                              .read(stockRepositoryProvider)
-                                              .deleteStockItem(item.id);
+                                          final deleteUseCase = ref.read(deleteStockItemUseCaseProvider);
+                                          await deleteUseCase(item.id);
                                           if (mounted) {
                                             ref.invalidate(stockItemsProvider);
                                             ScaffoldMessenger.of(

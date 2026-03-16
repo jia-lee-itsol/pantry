@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design/spacing.dart';
 import '../../../fridge/domain/entities/fridge_item.dart';
-import '../providers/home_provider.dart';
+import '../../../fridge/presentation/providers/fridge_provider.dart';
 import '../pages/near_expiry_list_page.dart';
 import 'near_expiry_item_tile.dart';
 
@@ -20,14 +20,14 @@ class NearExpirySection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildHeader(context),
+        _buildHeader(context, ref),
         const SizedBox(height: AppSpacing.md),
         _buildContent(context, ref),
       ],
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -39,7 +39,7 @@ class NearExpirySection extends ConsumerWidget {
         ),
         fridgeItemsAsync.when(
           data: (items) {
-            final nearExpiryCount = _getNearExpiryItems(items).length;
+            final nearExpiryCount = _getNearExpiryItems(items, ref).length;
             if (nearExpiryCount == 0) {
               return const SizedBox.shrink();
             }
@@ -68,7 +68,7 @@ class NearExpirySection extends ConsumerWidget {
           return _buildEmptyState(context);
         }
 
-        final nearExpiryItems = _getNearExpiryItems(items)
+        final nearExpiryItems = _getNearExpiryItems(items, ref)
           ..sort((a, b) => a.expiryDate.compareTo(b.expiryDate));
 
         if (nearExpiryItems.isEmpty) {
@@ -93,19 +93,18 @@ class NearExpirySection extends ConsumerWidget {
     );
   }
 
-  List<FridgeItem> _getNearExpiryItems(List<FridgeItem> items) {
-    return items.where((item) {
-      if (item.isFrozen) return false;
-      final daysUntilExpiry =
-          item.expiryDate.difference(DateTime.now()).inDays;
-      return daysUntilExpiry <= 7 && daysUntilExpiry >= 0;
-    }).toList();
+  List<FridgeItem> _getNearExpiryItems(List<FridgeItem> items, WidgetRef ref) {
+    final getNearExpiryUseCase = ref.read(getNearExpiryItemsUseCaseProvider);
+    // Filter out frozen items first, then apply near expiry filter
+    final unfrozenItems = items.where((item) => !item.isFrozen).toList();
+    return getNearExpiryUseCase(unfrozenItems);
   }
 
   Future<void> _handleConsume(
       BuildContext context, WidgetRef ref, FridgeItem item) async {
     try {
-      await ref.read(fridgeRepositoryProvider).deleteFridgeItem(item.id);
+      final deleteUseCase = ref.read(deleteFridgeItemUseCaseProvider);
+      await deleteUseCase(item.id);
       ref.invalidate(fridgeItemsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -124,17 +123,12 @@ class NearExpirySection extends ConsumerWidget {
   Future<void> _handleFreeze(
       BuildContext context, WidgetRef ref, FridgeItem item) async {
     try {
-      final updatedItem = FridgeItem(
-        id: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        category: item.category,
-        expiryDate: item.expiryDate,
-        createdAt: item.createdAt,
+      final updatedItem = item.copyWith(
         updatedAt: DateTime.now(),
         isFrozen: true,
       );
-      await ref.read(fridgeRepositoryProvider).updateFridgeItem(updatedItem);
+      final updateUseCase = ref.read(updateFridgeItemUseCaseProvider);
+      await updateUseCase(updatedItem);
       ref.invalidate(fridgeItemsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -4,18 +4,26 @@ import 'package:timezone/data/latest_all.dart' as tz;
 
 import '../../features/fridge/domain/entities/fridge_item.dart';
 import '../../features/stock/domain/entities/stock_item.dart';
+import '../domain/usecases/check_low_stock_usecase.dart';
+import '../domain/usecases/check_expiry_usecase.dart';
 import 'notification_settings_service.dart';
 
 class NotificationSchedulingService {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
   final NotificationSettingsService _settingsService;
+  final CheckLowStockUseCase _checkLowStockUseCase;
+  final CheckExpiryUseCase _checkExpiryUseCase;
 
   bool _isInitialized = false;
 
   NotificationSchedulingService({
     NotificationSettingsService? settingsService,
-  }) : _settingsService = settingsService ?? NotificationSettingsService();
+    CheckLowStockUseCase? checkLowStockUseCase,
+    CheckExpiryUseCase? checkExpiryUseCase,
+  })  : _settingsService = settingsService ?? NotificationSettingsService(),
+        _checkLowStockUseCase = checkLowStockUseCase ?? CheckLowStockUseCase(),
+        _checkExpiryUseCase = checkExpiryUseCase ?? CheckExpiryUseCase();
 
   /// 알림 서비스 초기화
   Future<void> initialize() async {
@@ -84,23 +92,23 @@ class NotificationSchedulingService {
       if (item.isFrozen) continue;
 
       final expiryDate = item.expiryDate;
-      final daysUntilExpiry = expiryDate.difference(now).inDays;
+      final daysUntilExpiry = _checkExpiryUseCase.daysUntilExpiry(expiryDate);
 
-      // 유통기한 3일 전 알림
-      if (daysUntilExpiry == 3) {
-        final scheduledDate = _getScheduledDate(expiryDate, -3);
+      // 유통기한 알림 기준일 (3일 전) 체크
+      if (_checkExpiryUseCase.shouldNotifyExpiry(expiryDate)) {
+        final scheduledDate = _getScheduledDate(expiryDate, -CheckExpiryUseCase.notificationThresholdDays);
         if (scheduledDate.isAfter(now)) {
           await _scheduleNotification(
             id: notificationId++,
             title: '賞味期限間近',
-            body: '${item.name}の賞味期限まであと3日です',
+            body: '${item.name}の賞味期限まであと$daysUntilExpiry日です',
             scheduledDate: scheduledDate,
           );
         }
       }
 
       // 유통기한 경과 알림
-      if (daysUntilExpiry < 0) {
+      if (_checkExpiryUseCase.isExpired(expiryDate)) {
         final scheduledDate = _getScheduledDate(expiryDate, 0);
         if (scheduledDate.isAfter(now)) {
           await _scheduleNotification(
@@ -131,16 +139,12 @@ class NotificationSchedulingService {
     // 기존 재고 알림 모두 취소 (중복 방지)
     await _cancelStockNotifications();
 
-    // 재고 부족 아이템 찾기
-    // 목표 수량이 설정된 경우: 현재 수량 < 목표 수량
-    // 목표 수량이 없는 경우: 현재 수량 < 5 (기본값)
-    final lowStockItems = items.where((item) {
-      if (item.targetQuantity != null) {
-        return item.quantity < item.targetQuantity!;
-      } else {
-        return item.quantity < 5; // 기본값
-      }
-    }).toList();
+    // 재고 부족 아이템 찾기 (Use Case 사용)
+    final lowStockItems = _checkLowStockUseCase.filterLowStock(
+      items: items,
+      getQuantity: (item) => item.quantity,
+      getTargetQuantity: (item) => item.targetQuantity,
+    );
 
     if (lowStockItems.isEmpty) return;
 
@@ -151,7 +155,7 @@ class NotificationSchedulingService {
     // 재고 부족 아이템이 여러 개인 경우 하나의 알림으로 통합
     if (lowStockItems.length == 1) {
       final item = lowStockItems.first;
-      final targetQty = item.targetQuantity ?? 5;
+      final targetQty = item.targetQuantity ?? CheckLowStockUseCase.defaultThreshold;
       await _scheduleNotification(
         id: 1000, // 재고 알림은 1000번대 ID 사용
         title: '在庫不足',
@@ -213,7 +217,7 @@ class NotificationSchedulingService {
 
   /// 냉장고 부족 알림 스케줄링
   /// 목표 수량(targetQuantity)이 설정된 경우, 현재 수량이 목표 수량 아래로 떨어지면 알림 발송
-  /// 목표 수량이 설정되지 않은 경우, 기본값(5) 미만일 때 알림 발송
+  /// 목표 수량이 설정되지 않은 경우, 기본값 미만일 때 알림 발송
   Future<void> scheduleFridgeStockNotifications(
     List<FridgeItem> items,
   ) async {
@@ -228,16 +232,12 @@ class NotificationSchedulingService {
     // 기존 냉장고 재고 알림 모두 취소 (중복 방지)
     await _cancelFridgeStockNotifications();
 
-    // 재고 부족 아이템 찾기
-    // 목표 수량이 설정된 경우: 현재 수량 < 목표 수량
-    // 목표 수량이 없는 경우: 현재 수량 < 5 (기본값)
-    final lowStockItems = items.where((item) {
-      if (item.targetQuantity != null) {
-        return item.quantity < item.targetQuantity!;
-      } else {
-        return item.quantity < 5; // 기본값
-      }
-    }).toList();
+    // 재고 부족 아이템 찾기 (Use Case 사용)
+    final lowStockItems = _checkLowStockUseCase.filterLowStock(
+      items: items,
+      getQuantity: (item) => item.quantity,
+      getTargetQuantity: (item) => item.targetQuantity,
+    );
 
     if (lowStockItems.isEmpty) return;
 
@@ -248,7 +248,7 @@ class NotificationSchedulingService {
     // 재고 부족 아이템이 여러 개인 경우 하나의 알림으로 통합
     if (lowStockItems.length == 1) {
       final item = lowStockItems.first;
-      final targetQty = item.targetQuantity ?? 5;
+      final targetQty = item.targetQuantity ?? CheckLowStockUseCase.defaultThreshold;
       await _scheduleNotification(
         id: 2000, // 냉장고 재고 알림은 2000번대 ID 사용
         title: '在庫不足',

@@ -7,6 +7,9 @@ import '../../../../core/design/widgets/app_scaffold.dart';
 import '../../../../core/design/widgets/section_card.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/providers/notification_scheduling_provider.dart';
+import '../../../../core/providers/usecase_providers.dart';
+import '../../../fridge/domain/entities/fridge_item.dart';
+import '../../../stock/domain/entities/stock_item.dart';
 import '../../../household/presentation/providers/household_provider.dart';
 import '../providers/home_provider.dart';
 import '../widgets/summary_card.dart';
@@ -54,10 +57,10 @@ class HomePage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const HouseholdRequestAlert(),
-              _buildExpiryAlert(fridgeItemsAsync),
-              _buildLowStockAlert(stockItemsAsync),
-              _buildLowFridgeStockAlert(fridgeItemsAsync),
-              _buildSummaryCards(fridgeItemsAsync, stockItemsAsync),
+              _buildExpiryAlert(fridgeItemsAsync, ref),
+              _buildLowStockAlert(stockItemsAsync, ref),
+              _buildLowFridgeStockAlert(fridgeItemsAsync, ref),
+              _buildSummaryCards(fridgeItemsAsync, stockItemsAsync, ref),
               const SizedBox(height: AppSpacing.lg),
               NearExpirySection(fridgeItemsAsync: fridgeItemsAsync),
               const SizedBox(height: AppSpacing.lg),
@@ -81,18 +84,12 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildExpiryAlert(AsyncValue fridgeItemsAsync) {
+  Widget _buildExpiryAlert(AsyncValue<List<FridgeItem>> fridgeItemsAsync, WidgetRef ref) {
     return fridgeItemsAsync.when(
       data: (items) {
+        final checkExpiryUseCase = ref.read(checkExpiryUseCaseProvider);
         final todayExpiryCount = items.where((item) {
-          final expiry = DateTime(
-            item.expiryDate.year,
-            item.expiryDate.month,
-            item.expiryDate.day,
-          );
-          final today = DateTime.now();
-          final todayOnly = DateTime(today.year, today.month, today.day);
-          return expiry == todayOnly;
+          return checkExpiryUseCase.isExpiredToday(item.expiryDate);
         }).length;
         return ExpiryAlertCard(count: todayExpiryCount);
       },
@@ -101,16 +98,15 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildLowStockAlert(AsyncValue stockItemsAsync) {
+  Widget _buildLowStockAlert(AsyncValue<List<StockItem>> stockItemsAsync, WidgetRef ref) {
     return stockItemsAsync.when(
       data: (items) {
-        final lowStockItems = items.where((item) {
-          if (item.targetQuantity != null) {
-            return item.quantity < item.targetQuantity!;
-          } else {
-            return item.quantity < 5;
-          }
-        }).toList();
+        final checkLowStockUseCase = ref.read(checkLowStockUseCaseProvider);
+        final lowStockItems = checkLowStockUseCase.filterLowStock<StockItem>(
+          items: items,
+          getQuantity: (item) => item.quantity,
+          getTargetQuantity: (item) => item.targetQuantity,
+        );
         return LowStockAlertCard(count: lowStockItems.length);
       },
       loading: () => const SizedBox.shrink(),
@@ -118,16 +114,15 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildLowFridgeStockAlert(AsyncValue fridgeItemsAsync) {
+  Widget _buildLowFridgeStockAlert(AsyncValue<List<FridgeItem>> fridgeItemsAsync, WidgetRef ref) {
     return fridgeItemsAsync.when(
       data: (items) {
-        final lowFridgeItems = items.where((item) {
-          if (item.targetQuantity != null) {
-            return item.quantity < item.targetQuantity!;
-          } else {
-            return item.quantity < 5;
-          }
-        }).toList();
+        final checkLowStockUseCase = ref.read(checkLowStockUseCaseProvider);
+        final lowFridgeItems = checkLowStockUseCase.filterLowStock<FridgeItem>(
+          items: items,
+          getQuantity: (item) => item.quantity,
+          getTargetQuantity: (item) => item.targetQuantity,
+        );
         return LowFridgeStockAlert(lowStockItems: lowFridgeItems);
       },
       loading: () => const SizedBox.shrink(),
@@ -136,19 +131,17 @@ class HomePage extends ConsumerWidget {
   }
 
   Widget _buildSummaryCards(
-    AsyncValue fridgeItemsAsync,
-    AsyncValue stockItemsAsync,
+    AsyncValue<List<FridgeItem>> fridgeItemsAsync,
+    AsyncValue<List<StockItem>> stockItemsAsync,
+    WidgetRef ref,
   ) {
     return Row(
       children: [
         fridgeItemsAsync.when(
           data: (items) {
-            final nearExpiryCount = items.where((item) {
-              if (item.isFrozen) return false;
-              final daysUntilExpiry =
-                  item.expiryDate.difference(DateTime.now()).inDays;
-              return daysUntilExpiry <= 7 && daysUntilExpiry >= 0;
-            }).length;
+            final getNearExpiryUseCase = ref.read(getNearExpiryItemsUseCaseProvider);
+            final unfrozenItems = items.where((item) => !item.isFrozen).toList();
+            final nearExpiryCount = getNearExpiryUseCase(unfrozenItems).length;
             return SummaryCard(
               title: '期限間近',
               count: nearExpiryCount,

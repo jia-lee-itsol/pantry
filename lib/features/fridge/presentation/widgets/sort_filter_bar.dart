@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design/spacing.dart';
+import '../../domain/usecases/group_fridge_items_usecase.dart';
 
-enum SortFilter {
-  expiryDateAsc,
-  quantityAsc,
-}
+// Re-export SortFilter from domain layer for convenience
+export '../../domain/usecases/group_fridge_items_usecase.dart' show SortFilter;
 
 class SortFilterBar extends StatelessWidget {
   final SortFilter selectedFilter;

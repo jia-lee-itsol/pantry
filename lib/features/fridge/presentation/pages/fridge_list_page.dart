@@ -154,12 +154,7 @@ class _FridgeListPageState extends ConsumerState<FridgeListPage> {
     }
 
     final groupedItems = _groupAndSortItems(filteredItems);
-    final sortedCategories = groupedItems.keys.toList()
-      ..sort((a, b) {
-        if (a == 'その他') return 1;
-        if (b == 'その他') return -1;
-        return a.compareTo(b);
-      });
+    final sortedCategories = _sortCategories(groupedItems.keys.toList());
 
     return Column(
       children: [
@@ -189,24 +184,13 @@ class _FridgeListPageState extends ConsumerState<FridgeListPage> {
   }
 
   Map<String, List<FridgeItem>> _groupAndSortItems(List<FridgeItem> items) {
-    final Map<String, List<FridgeItem>> groupedItems = {};
-    for (final item in items) {
-      final category = item.category ?? 'その他';
-      groupedItems.putIfAbsent(category, () => []).add(item);
-    }
+    final groupUseCase = ref.read(groupFridgeItemsUseCaseProvider);
+    return groupUseCase(items, sortFilter: _selectedFilter);
+  }
 
-    for (final category in groupedItems.keys) {
-      groupedItems[category]!.sort((a, b) {
-        switch (_selectedFilter) {
-          case SortFilter.expiryDateAsc:
-            return a.expiryDate.compareTo(b.expiryDate);
-          case SortFilter.quantityAsc:
-            return a.quantity.compareTo(b.quantity);
-        }
-      });
-    }
-
-    return groupedItems;
+  List<String> _sortCategories(List<String> categories) {
+    final groupUseCase = ref.read(groupFridgeItemsUseCaseProvider);
+    return groupUseCase.sortCategories(categories);
   }
 
   Widget _buildCategoryCard(String category, List<FridgeItem> items) {

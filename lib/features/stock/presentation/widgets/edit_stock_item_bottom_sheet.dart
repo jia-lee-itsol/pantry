@@ -90,7 +90,8 @@ class _EditStockItemBottomSheetState
     );
 
     try {
-      await ref.read(stockRepositoryProvider).updateStockItem(updatedItem);
+      final updateUseCase = ref.read(updateStockItemUseCaseProvider);
+      await updateUseCase(updatedItem);
       if (mounted) {
         Navigator.of(context).pop();
         ref.invalidate(stockItemsProvider);
@@ -129,7 +130,8 @@ class _EditStockItemBottomSheetState
 
     if (confirmed == true) {
       try {
-        await ref.read(stockRepositoryProvider).deleteStockItem(widget.item.id);
+        final deleteUseCase = ref.read(deleteStockItemUseCaseProvider);
+        await deleteUseCase(widget.item.id);
         if (mounted) {
           Navigator.of(context).pop();
           ref.invalidate(stockItemsProvider);
