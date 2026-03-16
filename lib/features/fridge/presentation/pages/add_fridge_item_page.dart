@@ -7,12 +7,13 @@ import '../../../../core/design/widgets/app_scaffold.dart';
 import '../../../../core/design/spacing.dart';
 import '../../../../core/services/permission_service.dart';
 import '../../../../core/services/expiry_date_service.dart';
-import '../../../ocr/presentation/providers/ocr_provider.dart';
 import '../../../ocr/domain/entities/receipt_item.dart';
-import '../../../barcode/presentation/providers/barcode_provider.dart';
-import '../../../settings/presentation/providers/category_provider.dart';
 import '../providers/fridge_provider.dart';
 import '../../domain/entities/fridge_item.dart';
+import '../widgets/barcode_scan_section.dart';
+import '../widgets/ocr_receipt_section.dart';
+import '../widgets/scanned_item_card.dart';
+import '../widgets/category_dropdown.dart';
 
 class AddFridgeItemPage extends ConsumerStatefulWidget {
   const AddFridgeItemPage({super.key});
@@ -45,48 +46,86 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
   }
 
   Future<void> _pickImage() async {
+    final imagePath = await _pickImageFromSource(ImageSource.camera);
+    if (imagePath != null) {
+      setState(() {
+        _selectedImagePath = imagePath;
+      });
+    }
+  }
+
+  Future<void> _pickImageForBarcode() async {
+    final imagePath = await _pickImageFromSource(ImageSource.camera);
+    if (imagePath != null) {
+      setState(() {
+        _barcodeImagePath = imagePath;
+        _selectedImagePath = null;
+      });
+    }
+  }
+
+  Future<void> _pickImageFromGallery() async {
+    final imagePath = await _pickImageFromSource(ImageSource.gallery);
+    if (imagePath != null) {
+      setState(() {
+        _selectedImagePath = imagePath;
+      });
+    }
+  }
+
+  Future<String?> _pickImageFromSource(ImageSource source) async {
     try {
-      // 카메라 권한 확인 및 요청
-      bool hasPermission = await PermissionService.checkCameraPermission();
-      if (!hasPermission) {
-        // 이미 거부된 상태인지 먼저 확인
-        final needsSettings =
-            await PermissionService.shouldOpenSettingsForCamera();
-
-        if (needsSettings) {
-          // 이미 거부됨 - 설정으로 이동 필요
-          if (mounted) {
-            _showCameraPermissionDialog();
-          }
-          return;
-        }
-
-        // 처음 요청하는 경우 - 시스템 다이얼로그 표시
-        hasPermission = await PermissionService.requestCameraPermission();
+      if (source == ImageSource.camera) {
+        bool hasPermission = await PermissionService.checkCameraPermission();
         if (!hasPermission) {
-          if (mounted) {
-            _showCameraPermissionDialog();
+          final needsSettings =
+              await PermissionService.shouldOpenSettingsForCamera();
+
+          if (needsSettings) {
+            if (mounted) _showCameraPermissionDialog();
+            return null;
           }
-          return;
+
+          hasPermission = await PermissionService.requestCameraPermission();
+          if (!hasPermission) {
+            if (mounted) _showCameraPermissionDialog();
+            return null;
+          }
+        }
+      } else if (source == ImageSource.gallery && Platform.isIOS) {
+        bool hasPermission =
+            await PermissionService.checkPhotoLibraryPermission();
+        if (!hasPermission) {
+          final needsSettings =
+              await PermissionService.shouldOpenSettingsForPhotoLibrary();
+
+          if (needsSettings) {
+            if (mounted) _showPhotoLibraryPermissionDialog();
+            return null;
+          }
+
+          hasPermission =
+              await PermissionService.requestPhotoLibraryPermission();
+          if (!hasPermission) {
+            if (mounted) _showPhotoLibraryPermissionDialog();
+            return null;
+          }
         }
       }
 
       final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.camera,
+        source: source,
         imageQuality: 90,
       );
 
-      if (image != null) {
-        setState(() {
-          _selectedImagePath = image.path;
-        });
-      }
+      return image?.path;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('画像選択失敗: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('画像選択失敗: $e')),
+        );
       }
+      return null;
     }
   }
 
@@ -113,103 +152,6 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
         ],
       ),
     );
-  }
-
-  Future<void> _pickImageForBarcode() async {
-    try {
-      // 카메라 권한 확인 및 요청
-      bool hasPermission = await PermissionService.checkCameraPermission();
-      if (!hasPermission) {
-        // 이미 거부된 상태인지 먼저 확인
-        final needsSettings =
-            await PermissionService.shouldOpenSettingsForCamera();
-
-        if (needsSettings) {
-          // 이미 거부됨 - 설정으로 이동 필요
-          if (mounted) {
-            _showCameraPermissionDialog();
-          }
-          return;
-        }
-
-        // 처음 요청하는 경우 - 시스템 다이얼로그 표시
-        hasPermission = await PermissionService.requestCameraPermission();
-        if (!hasPermission) {
-          if (mounted) {
-            _showCameraPermissionDialog();
-          }
-          return;
-        }
-      }
-
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 90,
-      );
-
-      if (image != null) {
-        setState(() {
-          _barcodeImagePath = image.path;
-          _selectedImagePath = null; // OCR 이미지 초기화
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('画像選択失敗: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _pickImageFromGallery() async {
-    try {
-      // フォトライブラリ権限の確認 (iOS)
-      if (Platform.isIOS) {
-        bool hasPermission =
-            await PermissionService.checkPhotoLibraryPermission();
-        if (!hasPermission) {
-          // 이미 거부된 상태인지 먼저 확인
-          final needsSettings =
-              await PermissionService.shouldOpenSettingsForPhotoLibrary();
-
-          if (needsSettings) {
-            // 이미 거부됨 - 설정으로 이동 필요
-            if (mounted) {
-              _showPhotoLibraryPermissionDialog();
-            }
-            return;
-          }
-
-          // 처음 요청하는 경우 - 시스템 다이얼로그 표시
-          hasPermission =
-              await PermissionService.requestPhotoLibraryPermission();
-          if (!hasPermission) {
-            if (mounted) {
-              _showPhotoLibraryPermissionDialog();
-            }
-            return;
-          }
-        }
-      }
-
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 90,
-      );
-
-      if (image != null) {
-        setState(() {
-          _selectedImagePath = image.path;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('画像選択失敗: $e')));
-      }
-    }
   }
 
   void _showPhotoLibraryPermissionDialog() {
@@ -259,7 +201,6 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
       _priceController.text = receiptItem.price.toStringAsFixed(0);
     });
 
-    // 자동 등록이 체크되어 있으면 AI로 유통기한을 자동 설정
     if (_autoRegisterExpiry && receiptItem.name.isNotEmpty) {
       await _updateExpiryDateWithAI(receiptItem.name);
     }
@@ -270,11 +211,9 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
       _autoRegisterExpiry = value ?? false;
     });
 
-    // 체크되면 AI로 상품명 기준 유통기한을 자동 설정
     if (_autoRegisterExpiry && _nameController.text.trim().isNotEmpty) {
       await _updateExpiryDateWithAI(_nameController.text.trim());
     } else if (!_autoRegisterExpiry) {
-      // チェック解除時に賞味期限を初期化
       setState(() {
         _expiryDate = null;
       });
@@ -282,16 +221,14 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
   }
 
   void _onProductNameChanged(String value) async {
-    // 자동 등록이 체크되어 있고 상품명이 입력되면 AI로 유통기한을 자동 설정
     if (_autoRegisterExpiry && value.trim().isNotEmpty) {
       await _updateExpiryDateWithAI(value.trim());
     }
   }
 
   Future<void> _updateExpiryDateWithAI(String productName) async {
-    // ローディング表示のため状態更新
     setState(() {
-      _expiryDate = null; // ローディング中を表示
+      _expiryDate = null;
     });
 
     try {
@@ -304,7 +241,6 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
         });
       }
     } catch (e) {
-      // AI失敗時はデフォルト値を使用
       if (mounted) {
         setState(() {
           _expiryDate = ExpiryDateService.getDefaultExpiryDate(productName);
@@ -316,9 +252,9 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
   Future<void> _saveItem() async {
     if (!_formKey.currentState!.validate()) return;
     if (_expiryDate == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('賞味期限を選択してください。')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('賞味期限を選択してください。')),
+      );
       return;
     }
 
@@ -338,27 +274,24 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
       debugPrint('[AddFridgeItemPage] 아이템 저장 시작: ${item.name}');
       await ref.read(fridgeRepositoryProvider).addFridgeItem(item);
       debugPrint('[AddFridgeItemPage] 아이템 저장 성공');
-      
+
       if (mounted) {
         Navigator.of(context).pop();
-        ref.invalidate(fridgeItemsProvider); // Invalidate to trigger refresh and reschedule notifications
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('冷蔵庫アイテムを追加しました。')));
+        ref.invalidate(fridgeItemsProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('冷蔵庫アイテムを追加しました。')),
+        );
       }
     } catch (e) {
       debugPrint('[AddFridgeItemPage] 아이템 저장 실패: $e');
       debugPrint('[AddFridgeItemPage] 에러 타입: ${e.runtimeType}');
-      
+
       if (mounted) {
-        // 에러 메시지가 너무 길면 요약
         final errorMessage = e.toString().length > 150
             ? '保存に失敗しました。Firebase ConsoleでFirestoreのセキュリティルールを確認してください。'
             : '保存失敗: ${e.toString().replaceAll('Exception: ', '')}';
-        
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: Colors.red,
@@ -378,295 +311,30 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
-            // バーコードスキャンセクション
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.qr_code_scanner,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'バーコードスキャン',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _pickImageForBarcode,
-                            icon: const Icon(Icons.camera_alt),
-                            label: const Text('バーコードスキャン'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_barcodeImagePath != null) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      Container(
-                        height: 150,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            File(_barcodeImagePath!),
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      _buildBarcodeScanResult(),
-                    ],
-                  ],
-                ),
-              ),
+            BarcodeScanSection(
+              barcodeImagePath: _barcodeImagePath,
+              onScanPressed: _pickImageForBarcode,
+              onBarcodeApplied: (barcode) {
+                _nameController.text = barcode;
+                _onProductNameChanged(barcode);
+              },
             ),
             const SizedBox(height: AppSpacing.md),
-            // OCRセクション
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.receipt,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          'レシートで追加',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _pickImage,
-                            icon: const Icon(Icons.camera_alt),
-                            label: const Text('カメラ'),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _pickImageFromGallery,
-                            icon: const Icon(Icons.photo_library),
-                            label: const Text('ギャラリー'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_selectedImagePath != null) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      Container(
-                        height: 150,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            File(_selectedImagePath!),
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      _buildOCRResults(),
-                    ],
-                  ],
-                ),
-              ),
+            OcrReceiptSection(
+              selectedImagePath: _selectedImagePath,
+              onCameraPressed: _pickImage,
+              onGalleryPressed: _pickImageFromGallery,
+              onItemsScanned: (items) {
+                setState(() {
+                  _scannedItems = items;
+                });
+              },
             ),
             const SizedBox(height: AppSpacing.md),
             const Divider(),
             const SizedBox(height: AppSpacing.md),
-            // スキャンされた商品カード表示
-            if (_scannedItems.isNotEmpty) ...[
-              Text(
-                'スキャンされた商品',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              ..._scannedItems.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
-                return Card(
-                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '数量: ${item.quantity}  |  ${item.price.toStringAsFixed(0)}円',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.arrow_downward, color: Colors.blue),
-                          onPressed: () => _applyOCRResult(item),
-                          tooltip: '下のフォームに適用',
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.red),
-                          onPressed: () {
-                            setState(() {
-                              _scannedItems.removeAt(index);
-                            });
-                          },
-                          tooltip: '削除',
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-              const SizedBox(height: AppSpacing.md),
-              const Divider(),
-              const SizedBox(height: AppSpacing.md),
-            ],
-            // 手動入力セクション
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: '商品名 *',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: _onProductNameChanged,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return '商品名を入力してください。';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _quantityController,
-                    decoration: const InputDecoration(
-                      labelText: '数量 *',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return '数量を入力してください。';
-                      }
-                      final quantity = int.tryParse(value);
-                      if (quantity == null || quantity <= 0) {
-                        return '正しい数量を入力してください。';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: TextFormField(
-                    controller: _priceController,
-                    decoration: const InputDecoration(
-                      labelText: '金額',
-                      border: OutlineInputBorder(),
-                      suffixText: '円',
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _buildCategoryDropdown(),
-            const SizedBox(height: AppSpacing.md),
-            // 目標数量 (목표 수량)
-            TextFormField(
-              controller: _targetQuantityController,
-              decoration: const InputDecoration(
-                labelText: '目標数量（任意）',
-                hintText: '在庫がこの数量を下回ると通知が送信されます',
-                border: OutlineInputBorder(),
-                helperText: '空欄の場合はデフォルト値(5)が使用されます',
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  final targetQuantity = int.tryParse(value);
-                  if (targetQuantity == null || targetQuantity <= 0) {
-                    return '正しい数量を入力してください。';
-                  }
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: AppSpacing.md),
-            // 自動登録チェックボックス
-            CheckboxListTile(
-              title: const Text('自動登録'),
-              subtitle: const Text('商品名に基づいて賞味期限を自動設定'),
-              value: _autoRegisterExpiry,
-              onChanged: _onAutoRegisterChanged,
-              contentPadding: EdgeInsets.zero,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            OutlinedButton(
-              onPressed: _autoRegisterExpiry ? null : _selectExpiryDate,
-              child: Row(
-                children: [
-                  const Icon(Icons.calendar_today),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      _expiryDate == null
-                          ? '賞味期限選択 *'
-                          : '賞味期限: ${_expiryDate!.year}/${_expiryDate!.month}/${_expiryDate!.day}',
-                    ),
-                  ),
-                  if (_autoRegisterExpiry)
-                    Icon(
-                      Icons.auto_awesome,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 18,
-                    ),
-                ],
-              ),
-            ),
+            _buildScannedItemsList(),
+            _buildManualInputSection(),
             const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
               onPressed: _saveItem,
@@ -681,173 +349,154 @@ class _AddFridgeItemPageState extends ConsumerState<AddFridgeItemPage> {
     );
   }
 
-  Widget _buildBarcodeScanResult() {
-    if (_barcodeImagePath == null) {
-      return const SizedBox.shrink();
-    }
+  Widget _buildScannedItemsList() {
+    if (_scannedItems.isEmpty) return const SizedBox.shrink();
 
-    final barcodeAsync = ref.watch(barcodeScanProvider(_barcodeImagePath!));
-
-    return barcodeAsync.when(
-      data: (result) {
-        if (result == null) {
-          return const Text(
-            'バーコードが見つかりませんでした。',
-            style: TextStyle(color: Colors.grey),
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'バーコード: ${result.barcode}',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            ElevatedButton.icon(
-              onPressed: () {
-                _nameController.text = result.barcode;
-                _onProductNameChanged(result.barcode);
-              },
-              icon: const Icon(Icons.check),
-              label: const Text('商品名に使用'),
-            ),
-          ],
-        );
-      },
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.md),
-          child: CircularProgressIndicator(),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'スキャンされた商品',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
         ),
-      ),
-      error: (error, stack) => Text(
-        'バーコードスキャン失敗: $error',
-        style: const TextStyle(color: Colors.red),
-      ),
+        const SizedBox(height: AppSpacing.sm),
+        ..._scannedItems.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          return ScannedItemCard(
+            item: item,
+            onApply: () => _applyOCRResult(item),
+            onRemove: () {
+              setState(() {
+                _scannedItems.removeAt(index);
+              });
+            },
+          );
+        }),
+        const SizedBox(height: AppSpacing.md),
+        const Divider(),
+        const SizedBox(height: AppSpacing.md),
+      ],
     );
   }
 
-  Widget _buildOCRResults() {
-    if (_selectedImagePath == null) {
-      return const SizedBox.shrink();
-    }
-
-    final ocrAsync = ref.watch(ocrScanProvider(_selectedImagePath!));
-
-    return ocrAsync.when(
-      data: (items) {
-        if (items.isEmpty) {
-          return const Text(
-            '認識された商品がありません。',
-            style: TextStyle(color: Colors.grey),
-          );
-        }
-
-        // OCR 결과를 _scannedItems에 저장
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scannedItems.isEmpty && items.isNotEmpty) {
-            setState(() {
-              _scannedItems = List.from(items);
-            });
-          }
-        });
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${items.length}個の商品を認識しました',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Colors.green,
-                      ),
-                ),
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _scannedItems = List.from(items);
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('商品をフォームに追加しました')),
-                    );
-                  },
-                  icon: const Icon(Icons.add_circle_outline, size: 18),
-                  label: const Text('すべて追加'),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.md),
-          child: CircularProgressIndicator(),
-        ),
-      ),
-      error: (error, stack) =>
-          Text('OCR処理失敗: $error', style: const TextStyle(color: Colors.red)),
-    );
-  }
-
-  Widget _buildCategoryDropdown() {
-    final categoriesAsync = ref.watch(categoriesProvider);
-
-    return categoriesAsync.when(
-      data: (categories) {
-        return DropdownButtonFormField<String>(
-          initialValue: _selectedCategory,
+  Widget _buildManualInputSection() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _nameController,
           decoration: const InputDecoration(
-            labelText: 'カテゴリ',
+            labelText: '商品名 *',
             border: OutlineInputBorder(),
           ),
-          items: [
-            const DropdownMenuItem<String>(value: null, child: Text('選択しない')),
-            ...categories.map(
-              (category) => DropdownMenuItem<String>(
-                value: category.name,
-                child: Text(category.name),
+          onChanged: _onProductNameChanged,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return '商品名を入力してください。';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: _quantityController,
+                decoration: const InputDecoration(
+                  labelText: '数量 *',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return '数量を入力してください。';
+                  }
+                  final quantity = int.tryParse(value);
+                  if (quantity == null || quantity <= 0) {
+                    return '正しい数量を入力してください。';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: TextFormField(
+                controller: _priceController,
+                decoration: const InputDecoration(
+                  labelText: '金額',
+                  border: OutlineInputBorder(),
+                  suffixText: '円',
+                ),
+                keyboardType: TextInputType.number,
               ),
             ),
           ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        CategoryDropdown(
+          selectedCategory: _selectedCategory,
           onChanged: (value) {
             setState(() {
               _selectedCategory = value;
             });
           },
-        );
-      },
-      loading: () => const InputDecorator(
-        decoration: InputDecoration(
-          labelText: 'カテゴリ',
-          border: OutlineInputBorder(),
         ),
-        child: SizedBox(
-          height: 24,
-          child: Center(
-            child: SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+        const SizedBox(height: AppSpacing.md),
+        TextFormField(
+          controller: _targetQuantityController,
+          decoration: const InputDecoration(
+            labelText: '目標数量（任意）',
+            hintText: '在庫がこの数量を下回ると通知が送信されます',
+            border: OutlineInputBorder(),
+            helperText: '空欄の場合はデフォルト値(5)が使用されます',
+          ),
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value != null && value.isNotEmpty) {
+              final targetQuantity = int.tryParse(value);
+              if (targetQuantity == null || targetQuantity <= 0) {
+                return '正しい数量を入力してください。';
+              }
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: AppSpacing.md),
+        CheckboxListTile(
+          title: const Text('自動登録'),
+          subtitle: const Text('商品名に基づいて賞味期限を自動設定'),
+          value: _autoRegisterExpiry,
+          onChanged: _onAutoRegisterChanged,
+          contentPadding: EdgeInsets.zero,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        OutlinedButton(
+          onPressed: _autoRegisterExpiry ? null : _selectExpiryDate,
+          child: Row(
+            children: [
+              const Icon(Icons.calendar_today),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  _expiryDate == null
+                      ? '賞味期限選択 *'
+                      : '賞味期限: ${_expiryDate!.year}/${_expiryDate!.month}/${_expiryDate!.day}',
+                ),
+              ),
+              if (_autoRegisterExpiry)
+                Icon(
+                  Icons.auto_awesome,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 18,
+                ),
+            ],
           ),
         ),
-      ),
-      error: (error, stack) => DropdownButtonFormField<String>(
-        initialValue: null,
-        decoration: const InputDecoration(
-          labelText: 'カテゴリ',
-          border: OutlineInputBorder(),
-        ),
-        items: const [
-          DropdownMenuItem<String>(value: null, child: Text('読み込み失敗')),
-        ],
-        onChanged: null,
-      ),
+      ],
     );
   }
 }

@@ -7,7 +7,10 @@ import '../../../../core/design/widgets/app_scaffold.dart';
 import '../../../../core/design/spacing.dart';
 import '../../../../core/services/backup_service.dart';
 import '../../../../core/services/notification_settings_service.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../widgets/settings_section_header.dart';
+import '../widgets/settings_switch_tile.dart';
+import '../widgets/settings_list_tile.dart';
+import '../widgets/settings_dialogs.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -32,8 +35,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _loadNotificationSettings() async {
     try {
-      final expiryEnabled = await _notificationSettingsService.getExpiryNotificationsEnabled();
-      final stockEnabled = await _notificationSettingsService.getStockNotificationsEnabled();
+      final expiryEnabled =
+          await _notificationSettingsService.getExpiryNotificationsEnabled();
+      final stockEnabled =
+          await _notificationSettingsService.getStockNotificationsEnabled();
       if (mounted) {
         setState(() {
           _expiryNotificationsEnabled = expiryEnabled;
@@ -51,542 +56,206 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       title: Text(AppStrings.settings),
       body: ListView(
         children: [
-          // 通知設定セクション
-          _buildSectionHeader('通知設定'),
-          _buildSwitchTile(
-            title: '賞味期限通知',
-            subtitle: '期限間近の商品の通知を受け取ります',
-            icon: Icons.notifications_outlined,
-            value: _expiryNotificationsEnabled,
-            onChanged: (value) async {
-              setState(() {
-                _expiryNotificationsEnabled = value;
-              });
-              await _notificationSettingsService.setExpiryNotificationsEnabled(value);
-            },
-          ),
-          _buildSwitchTile(
-            title: '備蓄品通知',
-            subtitle: '備蓄品の在庫不足時に通知を受け取ります',
-            icon: Icons.inventory_2_outlined,
-            value: _stockNotificationsEnabled,
-            onChanged: (value) async {
-              setState(() {
-                _stockNotificationsEnabled = value;
-              });
-              await _notificationSettingsService.setStockNotificationsEnabled(value);
-            },
-          ),
-
+          _buildNotificationSection(),
           const SizedBox(height: AppSpacing.lg),
-
-          // 카테고리 관리 섹션
-          _buildSectionHeader('カテゴリ管理'),
-          _buildListTile(
-            title: 'カテゴリ管理',
-            subtitle: '商品カテゴリの追加、修正、削除',
-            icon: Icons.category_outlined,
-            onTap: () {
-              context.push('/category-management');
-            },
-          ),
-
+          _buildCategorySection(),
           const SizedBox(height: AppSpacing.lg),
-
-          // 가족 공유 섹션
-          _buildSectionHeader('家族共有'),
-          _buildListTile(
-            title: '共有設定',
-            subtitle: '家族と冷蔵庫を共有・メンバー管理',
-            icon: Icons.people_outline,
-            onTap: () {
-              context.push('/household');
-            },
-          ),
-
+          _buildFamilySharingSection(),
           const SizedBox(height: AppSpacing.lg),
-
-          // 데이터 관리 섹션
-          _buildSectionHeader('データ管理'),
-          _buildListTile(
-            title: 'キャッシュ削除',
-            subtitle: 'アプリのキャッシュデータを削除します',
-            icon: Icons.delete_outline,
-            onTap: () {
-              _showCacheDeleteDialog(context);
-            },
-          ),
-          _buildListTile(
-            title: 'データバックアップ',
-            subtitle: _isBackingUp
-                ? 'バックアップ中...'
-                : 'データをクラウドにバックアップします',
-            icon: Icons.cloud_upload_outlined,
-            onTap: _isBackingUp
-                ? () {}
-                : () {
-                    _showBackupDialog(context);
-                  },
-          ),
-          _buildListTile(
-            title: 'データ復元',
-            subtitle: _isRestoring
-                ? '復元中...'
-                : 'バックアップしたデータを復元します',
-            icon: Icons.cloud_download_outlined,
-            onTap: _isRestoring
-                ? () {}
-                : () {
-                    _showRestoreDialog(context);
-                  },
-          ),
-
+          _buildDataManagementSection(),
           const SizedBox(height: AppSpacing.lg),
-
-          // アプリ情報セクション
-          _buildSectionHeader('アプリ情報'),
-          _buildListTile(
-            title: 'バージョン情報',
-            subtitle: '現在のバージョン: ${AppStrings.appVersion}',
-            icon: Icons.info_outline,
-            onTap: () {
-              _showVersionInfoDialog(context);
-            },
-          ),
-          _buildListTile(
-            title: '利用規約',
-            subtitle: 'サービス利用規約を確認します',
-            icon: Icons.description_outlined,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('利用規約ページは準備中です。')),
-              );
-            },
-          ),
-          _buildListTile(
-            title: 'プライバシーポリシー',
-            subtitle: 'プライバシーポリシーを確認します',
-            icon: Icons.privacy_tip_outlined,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('プライバシーポリシーページは準備中です。')),
-              );
-            },
-          ),
-
+          _buildAppInfoSection(),
           const SizedBox(height: AppSpacing.lg),
-
-          // アカウントセクション
-          _buildSectionHeader('アカウント'),
-          _buildListTile(
-            title: 'ログアウト',
-            subtitle: 'アカウントからログアウトします',
-            icon: Icons.logout,
-            onTap: () {
-              _showLogoutDialog(context);
-            },
-          ),
-          _buildListTile(
-            title: 'アカウント削除',
-            subtitle: 'アカウントとすべてのデータを完全に削除します',
-            icon: Icons.person_remove,
-            onTap: () {
-              _showDeleteAccountDialog(context);
-            },
-          ),
+          _buildAccountSection(),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.lg,
-        AppSpacing.md,
-        AppSpacing.sm,
-      ),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.bold,
+  Widget _buildNotificationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SettingsSectionHeader(title: '通知設定'),
+        SettingsSwitchTile(
+          title: '賞味期限通知',
+          subtitle: '期限間近の商品の通知を受け取ります',
+          icon: Icons.notifications_outlined,
+          value: _expiryNotificationsEnabled,
+          onChanged: (value) async {
+            setState(() {
+              _expiryNotificationsEnabled = value;
+            });
+            await _notificationSettingsService
+                .setExpiryNotificationsEnabled(value);
+          },
         ),
-      ),
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      child: SwitchListTile(
-        title: Text(title),
-        subtitle: Text(
-          subtitle,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+        SettingsSwitchTile(
+          title: '備蓄品通知',
+          subtitle: '備蓄品の在庫不足時に通知を受け取ります',
+          icon: Icons.inventory_2_outlined,
+          value: _stockNotificationsEnabled,
+          onChanged: (value) async {
+            setState(() {
+              _stockNotificationsEnabled = value;
+            });
+            await _notificationSettingsService
+                .setStockNotificationsEnabled(value);
+          },
         ),
-        secondary: Icon(icon),
-        value: value,
-        onChanged: onChanged,
-      ),
+      ],
     );
   }
 
-  Widget _buildListTile({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: Text(
-          subtitle,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+  Widget _buildCategorySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SettingsSectionHeader(title: 'カテゴリ管理'),
+        SettingsListTile(
+          title: 'カテゴリ管理',
+          subtitle: '商品カテゴリの追加、修正、削除',
+          icon: Icons.category_outlined,
+          onTap: () {
+            context.push('/category-management');
+          },
         ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
+      ],
     );
   }
 
-  void _showCacheDeleteDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('キャッシュ削除'),
-        content: const Text('アプリのキャッシュデータを削除しますか？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(AppStrings.cancel),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('キャッシュを削除しました。')));
-            },
-            child: const Text('削除'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showVersionInfoDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('アプリ情報'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('アプリ名: ${AppStrings.appName}'),
-            const SizedBox(height: AppSpacing.sm),
-            Text('バージョン: ${AppStrings.appVersion}'),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Pantryは冷蔵庫の在庫管理と備蓄品管理を助けるアプリです。',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+  Widget _buildFamilySharingSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SettingsSectionHeader(title: '家族共有'),
+        SettingsListTile(
+          title: '共有設定',
+          subtitle: '家族と冷蔵庫を共有・メンバー管理',
+          icon: Icons.people_outline,
+          onTap: () {
+            context.push('/household');
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('確認'),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
-  void _showBackupDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('データバックアップ'),
-        content: const Text('すべてのデータをクラウドにバックアップしますか？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(AppStrings.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              setState(() {
-                _isBackingUp = true;
-              });
-
-              try {
-                await _backupService.backupAllData();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('バックアップが完了しました。'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('バックアップに失敗しました: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              } finally {
-                if (mounted) {
-                  setState(() {
-                    _isBackingUp = false;
-                  });
-                }
-              }
-            },
-            child: const Text('バックアップ'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showRestoreDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('データ復元'),
-        content: const Text(
-          'バックアップしたデータで現在のデータを上書きします。\nこの操作は取り消せません。',
+  Widget _buildDataManagementSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SettingsSectionHeader(title: 'データ管理'),
+        SettingsListTile(
+          title: 'キャッシュ削除',
+          subtitle: 'アプリのキャッシュデータを削除します',
+          icon: Icons.delete_outline,
+          onTap: () {
+            SettingsDialogs.showCacheDeleteDialog(context);
+          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(AppStrings.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-
-              // 백업 데이터 존재 여부 확인
-              final hasBackup = await _backupService.hasBackupData();
-              if (!hasBackup) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('バックアップデータが見つかりません。'),
-                      backgroundColor: Colors.orange,
-                    ),
+        SettingsListTile(
+          title: 'データバックアップ',
+          subtitle:
+              _isBackingUp ? 'バックアップ中...' : 'データをクラウドにバックアップします',
+          icon: Icons.cloud_upload_outlined,
+          onTap: _isBackingUp
+              ? () {}
+              : () {
+                  SettingsDialogs.showBackupDialog(
+                    context,
+                    _backupService,
+                    () {
+                      if (mounted) setState(() => _isBackingUp = true);
+                    },
+                    () {
+                      if (mounted) setState(() => _isBackingUp = false);
+                    },
                   );
-                }
-                return;
-              }
-
-              // 확인 다이얼로그 표시
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (confirmContext) => AlertDialog(
-                  title: const Text('確認'),
-                  content: const Text('本当にデータを復元しますか？'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(confirmContext).pop(false),
-                      child: const Text(AppStrings.cancel),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(confirmContext).pop(true),
-                      child: const Text(
-                        '復元',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm != true) return;
-
-              setState(() {
-                _isRestoring = true;
-              });
-
-              try {
-                await _backupService.restoreAllData();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('データの復元が完了しました。アプリを再起動してください。'),
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 5),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('復元に失敗しました: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              } finally {
-                if (mounted) {
-                  setState(() {
-                    _isRestoring = false;
-                  });
-                }
-              }
-            },
-            child: const Text(
-              '復元',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ログアウト'),
-        content: const Text('本当にログアウトしますか？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(AppStrings.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              try {
-                final signOutUseCase = ref.read(signOutUseCaseProvider);
-                await signOutUseCase();
-                if (context.mounted) {
-                  context.go('/login');
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('ログアウトに失敗しました: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text(
-              'ログアウト',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteAccountDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('アカウント削除'),
-        content: const Text(
-          'アカウントを削除すると、すべてのデータが完全に削除され、復元できません。\n\n本当に削除しますか？',
+                },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(AppStrings.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-
-              // 최종 확인 다이얼로그
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (confirmContext) => AlertDialog(
-                  title: const Text('最終確認'),
-                  content: const Text(
-                    'この操作は取り消せません。\nアカウントを完全に削除してもよろしいですか？',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(confirmContext).pop(false),
-                      child: const Text(AppStrings.cancel),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(confirmContext).pop(true),
-                      child: const Text(
-                        '削除する',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-
-              if (confirm != true) return;
-
-              try {
-                final deleteAccountUseCase = ref.read(deleteAccountUseCaseProvider);
-                await deleteAccountUseCase();
-                if (context.mounted) {
-                  context.go('/login');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('アカウントが削除されました。'),
-                      backgroundColor: Colors.green,
-                    ),
+        SettingsListTile(
+          title: 'データ復元',
+          subtitle: _isRestoring ? '復元中...' : 'バックアップしたデータを復元します',
+          icon: Icons.cloud_download_outlined,
+          onTap: _isRestoring
+              ? () {}
+              : () {
+                  SettingsDialogs.showRestoreDialog(
+                    context,
+                    _backupService,
+                    () {
+                      if (mounted) setState(() => _isRestoring = true);
+                    },
+                    () {
+                      if (mounted) setState(() => _isRestoring = false);
+                    },
                   );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('アカウント削除に失敗しました: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text(
-              '削除',
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
+                },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppInfoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SettingsSectionHeader(title: 'アプリ情報'),
+        SettingsListTile(
+          title: 'バージョン情報',
+          subtitle: '現在のバージョン: ${AppStrings.appVersion}',
+          icon: Icons.info_outline,
+          onTap: () {
+            SettingsDialogs.showVersionInfoDialog(context);
+          },
+        ),
+        SettingsListTile(
+          title: '利用規約',
+          subtitle: 'サービス利用規約を確認します',
+          icon: Icons.description_outlined,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('利用規約ページは準備中です。')),
+            );
+          },
+        ),
+        SettingsListTile(
+          title: 'プライバシーポリシー',
+          subtitle: 'プライバシーポリシーを確認します',
+          icon: Icons.privacy_tip_outlined,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('プライバシーポリシーページは準備中です。')),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccountSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SettingsSectionHeader(title: 'アカウント'),
+        SettingsListTile(
+          title: 'ログアウト',
+          subtitle: 'アカウントからログアウトします',
+          icon: Icons.logout,
+          onTap: () {
+            SettingsDialogs.showLogoutDialog(context, ref);
+          },
+        ),
+        SettingsListTile(
+          title: 'アカウント削除',
+          subtitle: 'アカウントとすべてのデータを完全に削除します',
+          icon: Icons.person_remove,
+          onTap: () {
+            SettingsDialogs.showDeleteAccountDialog(context, ref);
+          },
+        ),
+      ],
     );
   }
 }
