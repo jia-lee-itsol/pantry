@@ -12,5 +12,6 @@ class AppKeys {
   static const String stockCollection = 'stock_items';
   static const String alertsCollection = 'alerts';
   static const String receiptsCollection = 'receipts';
+  static const String purchasesCollection = 'purchases';
 }
 

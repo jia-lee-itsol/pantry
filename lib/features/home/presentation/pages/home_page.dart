@@ -34,6 +34,17 @@ class HomePage extends ConsumerWidget {
       title: Text(AppStrings.appName),
       actions: [
         Semantics(
+          label: '검색',
+          button: true,
+          child: IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              context.push('/search');
+            },
+            tooltip: '検索',
+          ),
+        ),
+        Semantics(
           label: '피난소 지도',
           button: true,
           child: IconButton(
@@ -76,6 +87,13 @@ class HomePage extends ConsumerWidget {
                 subtitle: '在庫に合わせたレシピを提案',
                 icon: Icons.restaurant_menu,
                 route: '/recipe',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const SectionCard(
+                title: '支出統計',
+                subtitle: '購入履歴と支出を分析',
+                icon: Icons.analytics,
+                route: '/analytics',
               ),
             ],
           ),

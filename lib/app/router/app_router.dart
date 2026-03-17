@@ -25,6 +25,8 @@ import '../../features/household/presentation/pages/member_management_page.dart'
 import '../../features/household/presentation/pages/user_search_page.dart';
 import '../../features/household/presentation/pages/household_requests_page.dart';
 import '../../features/auth/presentation/pages/username_registration_page.dart';
+import '../../features/search/presentation/pages/search_page.dart';
+import '../../features/analytics/presentation/pages/spending_stats_page.dart';
 import '../../core/widgets/main_navigation.dart';
 
 /// 페이지 전환 애니메이션을 제공하는 커스텀 페이지 빌더
@@ -260,6 +262,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: 'household',
             pageBuilder: (context, state) => _buildShellPageWithFadeTransition(
               const HouseholdPage(),
+              state.pageKey,
+              state.name,
+            ),
+          ),
+          GoRoute(
+            path: '/search',
+            name: 'search',
+            pageBuilder: (context, state) => _buildShellPageWithFadeTransition(
+              const SearchPage(),
+              state.pageKey,
+              state.name,
+            ),
+          ),
+          GoRoute(
+            path: '/analytics',
+            name: 'analytics',
+            pageBuilder: (context, state) => _buildShellPageWithFadeTransition(
+              const SpendingStatsPage(),
               state.pageKey,
               state.name,
             ),
