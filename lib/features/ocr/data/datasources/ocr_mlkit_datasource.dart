@@ -3,11 +3,27 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import '../models/receipt_item_model.dart';
 import 'ocr_remote_datasource.dart';
 
+/// Data source for OCR processing using Google ML Kit.
+///
+/// This class provides text recognition functionality using the ML Kit
+/// Text Recognition API. It processes receipt images to extract text
+/// and parse product information.
 class OCRMLKitDataSource implements OCRRemoteDataSource {
   final TextRecognizer _textRecognizer;
 
+  /// Creates an [OCRMLKitDataSource] with ML Kit text recognizer.
   OCRMLKitDataSource() : _textRecognizer = TextRecognizer();
 
+  /// Scans an image and extracts receipt items using ML Kit OCR.
+  ///
+  /// Performs text recognition on the image and parses the extracted text
+  /// to identify product items with their names, prices, and quantities.
+  ///
+  /// Parameters:
+  ///   [imagePath] - The file path of the receipt image to scan
+  ///
+  /// Returns a list of [ReceiptItemModel] objects parsed from the image.
+  /// Throws an exception if OCR processing fails.
   @override
   Future<List<ReceiptItemModel>> scanImage(String imagePath) async {
     try {
@@ -16,11 +32,19 @@ class OCRMLKitDataSource implements OCRRemoteDataSource {
 
       return _parseReceiptText(recognizedText.text);
     } catch (e) {
-      throw Exception('OCR 처리 실패: $e');
+      throw Exception('OCR processing failed: $e');
     }
   }
 
-  /// 영수증 텍스트를 파싱하여 상품 목록으로 변환
+  /// Parses receipt text to extract product information.
+  ///
+  /// Analyzes the OCR-extracted text line by line to identify products,
+  /// prices, and quantities using pattern matching.
+  ///
+  /// Parameters:
+  ///   [text] - The raw text extracted from the receipt
+  ///
+  /// Returns a list of [ReceiptItemModel] objects.
   List<ReceiptItemModel> _parseReceiptText(String text) {
     final items = <ReceiptItemModel>[];
     final lines = text.split('\n');
@@ -51,7 +75,16 @@ class OCRMLKitDataSource implements OCRRemoteDataSource {
     return items;
   }
 
-  /// 텍스트 라인에서 상품 정보 추출 (이름, 가격, 수량)
+  /// Extracts product information from a text line.
+  ///
+  /// Attempts to parse a line of text to extract product name, price,
+  /// and quantity using regex patterns for Korean receipts.
+  ///
+  /// Parameters:
+  ///   [line] - A single line of text from the receipt
+  ///
+  /// Returns a map containing 'name', 'price', and 'quantity' keys,
+  /// or null if no valid product information is found.
   Map<String, dynamic>? _extractProductInfo(String line) {
     // 숫자 제거 (가격 추출용)
     final priceRegex = RegExp(r'[\d,]+원?');
@@ -95,6 +128,9 @@ class OCRMLKitDataSource implements OCRRemoteDataSource {
     };
   }
 
+  /// Releases resources used by the text recognizer.
+  ///
+  /// Should be called when the OCR processor is no longer needed.
   void dispose() {
     _textRecognizer.close();
   }

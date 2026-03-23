@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+/// Main Navigation Widget
+///
+/// Provides the bottom navigation bar for the main sections of the application.
+/// Works with GoRouter to handle navigation between different screens.
+///
+/// Navigation Tabs:
+/// - Home (0): Dashboard and overview
+/// - Fridge (1): Refrigerator items
+/// - Stock (2): Pantry/emergency stock items
+/// - List (3): Shopping list
+/// - Settings (4): App settings
+///
+/// This widget wraps the child content and adds a bottom navigation bar
+/// with proper routing integration.
 class MainNavigation extends StatelessWidget {
+  /// The child widget to display above the navigation bar
   final Widget child;
 
   const MainNavigation({
@@ -9,6 +24,12 @@ class MainNavigation extends StatelessWidget {
     required this.child,
   });
 
+  /// Gets the current navigation index based on the route
+  ///
+  /// Parameters:
+  ///   - context: Build context for accessing router state
+  ///
+  /// Returns: Index of the current navigation tab (0-4)
   int _getCurrentIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
     switch (location) {
@@ -27,6 +48,13 @@ class MainNavigation extends StatelessWidget {
     }
   }
 
+  /// Handles navigation bar item taps
+  ///
+  /// Navigates to the appropriate route based on the tapped index.
+  ///
+  /// Parameters:
+  ///   - context: Build context for navigation
+  ///   - index: Index of the tapped navigation item
   void _onItemTapped(BuildContext context, int index) {
     switch (index) {
       case 0:
@@ -51,11 +79,8 @@ class MainNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentIndex = _getCurrentIndex(context);
 
-    // child가 Scaffold를 포함하고 있으므로, AppBar와 body를 추출해야 합니다.
-    // 하지만 go_router의 ShellRoute는 이미 child를 제공하므로,
-    // child를 그대로 사용하고 bottomNavigationBar를 추가하는 방식이 필요합니다.
-    
-    // child를 감싸는 Scaffold를 만들어서 bottomNavigationBar를 추가합니다.
+    // Wrap child in a Scaffold to add bottom navigation bar
+    // The child already contains the Scaffold for the page content
     return Scaffold(
       body: child,
       bottomNavigationBar: Container(
@@ -69,7 +94,7 @@ class MainNavigation extends StatelessWidget {
           ],
         ),
         child: Semantics(
-          label: '메인 네비게이션',
+          label: 'Main navigation',
           child: BottomNavigationBar(
             currentIndex: currentIndex,
             onTap: (index) => _onItemTapped(context, index),

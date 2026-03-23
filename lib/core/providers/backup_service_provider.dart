@@ -2,7 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/backup_service.dart';
 
-/// 백업 서비스 프로바이더
+/// Backup Service Provider
+///
+/// Provides the backup service instance for dependency injection.
+/// This provider creates and manages the BackupService for handling
+/// data backup and restoration operations throughout the application.
 final backupServiceProvider = Provider<BackupService>((ref) {
   return BackupService();
 });

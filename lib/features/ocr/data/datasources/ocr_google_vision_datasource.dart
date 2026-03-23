@@ -8,22 +8,39 @@ import 'package:http/http.dart' as http;
 import '../models/receipt_item_model.dart';
 import 'ocr_remote_datasource.dart';
 
+/// Data source for OCR processing using Google Cloud Vision API.
+///
+/// This class provides advanced text recognition functionality using
+/// Google Cloud Vision API. It's particularly effective for Japanese
+/// receipts, supporting complex layouts and multiple text patterns.
 class OCRGoogleVisionDataSource implements OCRRemoteDataSource {
   static const String _baseUrl =
       'https://vision.googleapis.com/v1/images:annotate';
 
+  /// Gets the Google Cloud Vision API key from environment variables.
   String get _apiKey => dotenv.env['GOOGLE_CLOUD_VISION_API_KEY'] ?? '';
 
+  /// Scans an image using Google Cloud Vision API to extract receipt items.
+  ///
+  /// Sends the image to Google Cloud Vision API for text detection,
+  /// then parses the returned text to extract product information.
+  /// Supports complex Japanese receipt layouts with multiple patterns.
+  ///
+  /// Parameters:
+  ///   [imagePath] - The file path of the receipt image to scan
+  ///
+  /// Returns a list of [ReceiptItemModel] objects parsed from the image.
+  /// Throws an exception if the API key is missing or if processing fails.
   @override
   Future<List<ReceiptItemModel>> scanImage(String imagePath) async {
     try {
-      // API 키 확인
+      // Verify API key is configured
       debugPrint(
         '[OCR] API Key loaded: ${_apiKey.isNotEmpty ? "Yes (${_apiKey.substring(0, 10)}...)" : "NO - EMPTY!"}',
       );
 
       if (_apiKey.isEmpty) {
-        throw Exception('API キーが設定されていません。.envファイルを確認してください。');
+        throw Exception('API key is not configured. Please check your .env file.');
       }
 
       final imageFile = File(imagePath);
@@ -55,7 +72,7 @@ class OCRGoogleVisionDataSource implements OCRRemoteDataSource {
 
       if (response.statusCode != 200) {
         throw Exception(
-          'Google Cloud Vision API エラー: ${response.statusCode} - ${response.body}',
+          'Google Cloud Vision API error: ${response.statusCode} - ${response.body}',
         );
       }
 
@@ -80,11 +97,23 @@ class OCRGoogleVisionDataSource implements OCRRemoteDataSource {
 
       return _parseReceiptText(fullText);
     } catch (e) {
-      throw Exception('OCR 処理失敗: $e');
+      throw Exception('OCR processing failed: $e');
     }
   }
 
-  /// 영수증 텍스트를 파싱하여 상품 목록으로 변환
+  /// Parses receipt text to extract product information.
+  ///
+  /// This method implements sophisticated parsing logic for Japanese receipts,
+  /// handling various formats including:
+  /// - Products with prices on the same line
+  /// - Products with prices on separate lines
+  /// - Different price notations (¥, *, numbers only)
+  /// - Quantity indicators
+  ///
+  /// Parameters:
+  ///   [text] - The raw text extracted from the receipt
+  ///
+  /// Returns a list of [ReceiptItemModel] objects.
   List<ReceiptItemModel> _parseReceiptText(String text) {
     final items = <ReceiptItemModel>[];
     final lines = text
@@ -216,7 +245,16 @@ class OCRGoogleVisionDataSource implements OCRRemoteDataSource {
     return items;
   }
 
-  /// 상품명일 가능성이 있는 줄인지 확인
+  /// Checks if a line could be a product name.
+  ///
+  /// Validates whether a text line has characteristics of a product name,
+  /// including Japanese characters, appropriate length, and not being
+  /// composed only of numbers.
+  ///
+  /// Parameters:
+  ///   [line] - The text line to check
+  ///
+  /// Returns true if the line could be a product name, false otherwise.
   bool _isPossibleProductName(String line) {
     // 히라가나, 카타카나, 한자가 포함되어 있고
     // 숫자로만 구성되지 않았으며
@@ -237,7 +275,21 @@ class OCRGoogleVisionDataSource implements OCRRemoteDataSource {
     return (hasJapanese || hasAlphanumeric) && !isOnlyNumbers;
   }
 
-  /// 텍스트 라인에서 상품 정보 추출 (이름, 가격, 수량)
+  /// Extracts product information from a text line.
+  ///
+  /// Attempts multiple regex patterns to extract product name, price,
+  /// and quantity from a single line, supporting various Japanese
+  /// receipt formats including:
+  /// - ¥ or ￥ symbol notation
+  /// - 円 notation
+  /// - Space-separated values
+  /// - Multi-column layouts
+  ///
+  /// Parameters:
+  ///   [line] - A single line of text from the receipt
+  ///
+  /// Returns a map with 'name', 'price', and 'quantity' keys,
+  /// or null if no valid product information is found.
   Map<String, dynamic>? _extractProductInfo(String line) {
     // 패턴 1: ¥ 또는 ￥ 기호가 있는 경우 (¥298, ￥1,500)
     final yenSymbolRegex = RegExp(r'(.+?)\s*[¥￥]\s*([\d,]+)');
@@ -331,7 +383,16 @@ class OCRGoogleVisionDataSource implements OCRRemoteDataSource {
     return null;
   }
 
-  /// 비상품 라인인지 확인
+  /// Checks if a line is non-product information.
+  ///
+  /// Filters out lines that contain store information, payment details,
+  /// dates, phone numbers, and other non-product content commonly
+  /// found on receipts.
+  ///
+  /// Parameters:
+  ///   [line] - The text line to check
+  ///
+  /// Returns true if the line should be filtered out, false otherwise.
   bool _isNonProductLine(String line) {
     final excludeKeywords = [
       // 가게/연락처 정보
@@ -423,7 +484,15 @@ class OCRGoogleVisionDataSource implements OCRRemoteDataSource {
     return false;
   }
 
-  /// 상품명 정리
+  /// Cleans and normalizes product names.
+  ///
+  /// Removes unwanted characters like brackets, quantity indicators,
+  /// and extra whitespace from product names.
+  ///
+  /// Parameters:
+  ///   [name] - The raw product name to clean
+  ///
+  /// Returns a cleaned product name string.
   String _cleanProductName(String name) {
     return name
         .replaceAll(RegExp(r'^\s*[*×xX]\s*\d+\s*'), '') // 앞쪽 수량 제거
@@ -432,7 +501,15 @@ class OCRGoogleVisionDataSource implements OCRRemoteDataSource {
         .trim();
   }
 
-  /// 유효한 가격인지 확인 (50엔 ~ 50,000엔 범위)
+  /// Validates if a price value is within reasonable range.
+  ///
+  /// Checks if the price falls within the expected range for retail
+  /// products (50 to 50,000 yen).
+  ///
+  /// Parameters:
+  ///   [price] - The price value to validate
+  ///
+  /// Returns true if the price is valid, false otherwise.
   bool _isValidPrice(double price) {
     return price >= 50 && price <= 50000;
   }

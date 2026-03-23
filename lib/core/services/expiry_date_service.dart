@@ -1,19 +1,31 @@
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/foundation.dart';
 
+/// Expiry Date Service
+///
+/// Provides intelligent expiry date estimation for food products using both
+/// AI-powered predictions and hardcoded fallback rules. This service helps
+/// users manage food freshness by automatically suggesting expiration dates
+/// based on product names.
+///
+/// The service uses a two-tier approach:
+/// 1. Primary: AI-powered prediction using Firebase Gemini 2.0 Flash
+/// 2. Fallback: Hardcoded rules based on common food categories
+///
+/// Supported languages: Japanese, Korean, and English
 class ExpiryDateService {
   ExpiryDateService._();
 
-  /// AI를 사용하여 상품명 기반 유통기한(일수)을 검색합니다.
+  /// Gets expiry days for a product using AI
   ///
-  /// Firebase AI (Gemini 2.0 Flash)를 사용하여 상품명으로 유통기한을 검색합니다.
-  /// AI 호출이 실패하거나 응답을 파싱할 수 없는 경우,
-  /// 하드코딩된 규칙을 사용하는 `getDefaultExpiryDays` 메서드를 호출합니다.
+  /// Uses Firebase AI (Gemini 2.0 Flash) to estimate the shelf life of a product
+  /// based on its name. If AI prediction fails or returns an invalid value,
+  /// falls back to the `getDefaultExpiryDays` method.
   ///
-  /// 파라미터:
-  /// - [productName]: 상품명
+  /// Parameters:
+  ///   - productName: The name of the product
   ///
-  /// 반환: 유통기한 일수 (1-365일 사이의 값)
+  /// Returns: Number of days until expiry (1-365 days)
   static Future<int> getExpiryDaysWithAI(String productName) async {
     try {
       // Firebase AI Logic 초기화 (Gemini Developer API 사용)
@@ -21,7 +33,7 @@ class ExpiryDateService {
         model: 'gemini-2.0-flash',
       );
 
-      // 프롬프트 생성: 일본어로 유통기한을 일수로만 답변하도록 요청
+      // Generate prompt: Request expiry days as a number only
       final promptText =
           '''
 以下の食品を冷蔵保存する場合の一般的な消費期限を日数で数字のみで答えてください。
@@ -35,48 +47,57 @@ class ExpiryDateService {
       final text = response.text?.trim() ?? '';
 
       if (text.isEmpty) {
-        debugPrint('AI応答が空です。');
+        debugPrint('AI response is empty.');
         return getDefaultExpiryDays(productName);
       }
 
-      // 숫자만 추출 (정규식을 사용하여 숫자가 아닌 문자 제거)
+      // Extract numbers only (remove non-numeric characters using regex)
       final days = int.tryParse(text.replaceAll(RegExp(r'[^0-9]'), ''));
 
-      // 유효성 검증: 1일 이상 365일 이하인지 확인
+      // Validate: Must be between 1 and 365 days
       if (days != null && days > 0 && days <= 365) {
-        debugPrint('AI消費期限検索成功: $productName -> $days日');
+        debugPrint('AI expiry date lookup successful: $productName -> $days days');
         return days;
       } else {
-        debugPrint('AI応答パース失敗: $text');
+        debugPrint('AI response parsing failed: $text');
       }
     } catch (e) {
-      // AI 호출 실패 시 기본값 사용
-      debugPrint('AI消費期限検索失敗: $e');
+      // Use default value if AI call fails
+      debugPrint('AI expiry date lookup failed: $e');
     }
 
-    // AI 실패 시 하드코딩된 값 사용
+    // Fall back to hardcoded values if AI fails
     return getDefaultExpiryDays(productName);
   }
 
-  /// 상품명을 기반으로 기본 유통기한(일수)을 반환합니다.
+  /// Gets default expiry days based on product name
   ///
-  /// 하드코딩된 규칙을 사용하여 상품명으로 유통기한을 계산합니다.
-  /// 일본어, 한국어, 영어를 지원하며, 상품명에 특정 키워드가 포함되어 있는지 확인합니다.
-  /// 매칭되는 카테고리가 없으면 기본값인 7일을 반환합니다.
+  /// Uses hardcoded rules to estimate shelf life based on product categories.
+  /// Supports Japanese, Korean, and English product names by checking for
+  /// specific keywords in the product name.
   ///
-  /// 파라미터:
-  /// - [productName]: 상품명
+  /// Categories include:
+  /// - Dairy products (3-30 days)
+  /// - Eggs (21 days)
+  /// - Vegetables (3-30 days)
+  /// - Fruits (3-14 days)
+  /// - Soy products (5-365 days)
+  /// - Meat (1-5 days)
+  /// - Seafood (1-3 days)
+  /// - Bread/Noodles (5-7 days)
   ///
-  /// 반환: 유통기한 일수
+  /// Parameters:
+  ///   - productName: The name of the product
   ///
-  /// 참고: 당일 기준으로 추가된 경우를 가정합니다.
+  /// Returns: Number of days until expiry (defaults to 7 days if no match found)
   static int getDefaultExpiryDays(String productName) {
-    // 일본어는 대소문자가 없으므로 원본과 소문자 모두 체크
-    // 한국어, 영어 대응을 위해 소문자 변환도 함께 수행
     final name = productName.trim();
     final lowerName = name.toLowerCase();
 
-    // 유제품 (3-14일)
+    // ============================================================
+    // SECTION: Dairy Products (3-14 days)
+    // ============================================================
+
     if (name.contains('牛乳') ||
         lowerName.contains('milk') ||
         name.contains('우유') ||
@@ -101,7 +122,9 @@ class ExpiryDateService {
       return 5;
     }
 
-    // 계란 (14-21일)
+    // ============================================================
+    // SECTION: Eggs (21 days)
+    // ============================================================
     if (name.contains('卵') ||
         name.contains('たまご') ||
         name.contains('タマゴ') ||
@@ -111,7 +134,9 @@ class ExpiryDateService {
       return 21;
     }
 
-    // 채소 (3-30일)
+    // ============================================================
+    // SECTION: Vegetables (3-30 days)
+    // ============================================================
     if (name.contains('レタス') ||
         lowerName.contains('lettuce') ||
         name.contains('상추') ||
@@ -164,7 +189,9 @@ class ExpiryDateService {
       return 30;
     }
 
-    // 과일 (3-14일)
+    // ============================================================
+    // SECTION: Fruits (3-14 days)
+    // ============================================================
     if (name.contains('りんご') ||
         name.contains('リンゴ') ||
         name.contains('林檎') ||
@@ -216,7 +243,9 @@ class ExpiryDateService {
       return 5;
     }
 
-    // 콩제품 (3-180일)
+    // ============================================================
+    // SECTION: Soy Products (5-365 days)
+    // ============================================================
     if (name.contains('豆腐') ||
         name.contains('トウフ') ||
         lowerName.contains('tofu') ||
@@ -234,7 +263,9 @@ class ExpiryDateService {
       return 365;
     }
 
-    // 육류 (1-5일)
+    // ============================================================
+    // SECTION: Meat (1-5 days)
+    // ============================================================
     if (name.contains('鶏肉') ||
         name.contains('とり肉') ||
         name.contains('チキン') ||
@@ -274,7 +305,9 @@ class ExpiryDateService {
       return 5;
     }
 
-    // 생선/해산물 (1-3일)
+    // ============================================================
+    // SECTION: Fish/Seafood (1-3 days)
+    // ============================================================
     if (name.contains('魚') ||
         name.contains('さかな') ||
         name.contains('サカナ') ||
@@ -321,7 +354,9 @@ class ExpiryDateService {
       return 2;
     }
 
-    // 빵/면류 (2-7일)
+    // ============================================================
+    // SECTION: Bread/Noodles (5-7 days)
+    // ============================================================
     if (name.contains('パン') ||
         lowerName.contains('bread') ||
         name.contains('빵')) {
@@ -348,7 +383,9 @@ class ExpiryDateService {
       return 7;
     }
 
-    // 기타 일본 식품
+    // ============================================================
+    // SECTION: Other Japanese Foods
+    // ============================================================
     if (name.contains('もずく') || name.contains('モズク')) {
       return 3;
     }
@@ -365,11 +402,19 @@ class ExpiryDateService {
       return 30;
     }
 
-    // 기본값: 7일
+    // Default: 7 days if no category matches
     return 7;
   }
 
-  /// 상품명을 기반으로 당일 기준 유통기한 날짜를 반환합니다.
+  /// Gets default expiry date based on product name
+  ///
+  /// Calculates the expiry date from today by adding the estimated
+  /// number of days returned by `getDefaultExpiryDays`.
+  ///
+  /// Parameters:
+  ///   - productName: The name of the product
+  ///
+  /// Returns: Estimated expiry date
   static DateTime getDefaultExpiryDate(String productName) {
     final days = getDefaultExpiryDays(productName);
     final today = DateTime.now();
@@ -380,7 +425,15 @@ class ExpiryDateService {
     ).add(Duration(days: days));
   }
 
-  /// AI를 사용하여 상품명 기반 유통기한 날짜를 반환합니다.
+  /// Gets expiry date for a product using AI
+  ///
+  /// Calculates the expiry date from today by adding the AI-estimated
+  /// number of days returned by `getExpiryDaysWithAI`.
+  ///
+  /// Parameters:
+  ///   - productName: The name of the product
+  ///
+  /// Returns: AI-estimated expiry date
   static Future<DateTime> getExpiryDateWithAI(String productName) async {
     final days = await getExpiryDaysWithAI(productName);
     final today = DateTime.now();

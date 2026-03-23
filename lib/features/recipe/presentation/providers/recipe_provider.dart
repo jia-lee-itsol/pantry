@@ -9,38 +9,51 @@ import '../../../fridge/domain/entities/fridge_item.dart';
 import '../../../stock/presentation/providers/stock_provider.dart';
 import '../../../stock/domain/entities/stock_item.dart';
 
-/// 레시피 리포지토리 프로바이더
+/// Provider for the recipe repository.
+///
+/// Exposes the [RecipeRepository] interface, implemented by the core
+/// recipe service. Enables dependency injection for recipe operations.
 final recipeRepositoryProvider = Provider<RecipeRepository>((ref) {
   return ref.watch(recipeServiceProvider);
 });
 
-/// 레시피 추천 유스케이스 프로바이더
+/// Provider for the get recipe recommendations use case.
+///
+/// Creates an instance of [GetRecipeRecommendationsUseCase] with the
+/// injected recipe repository, following clean architecture principles.
 final getRecipeRecommendationsUseCaseProvider =
     Provider<GetRecipeRecommendationsUseCase>((ref) {
   final repository = ref.watch(recipeRepositoryProvider);
   return GetRecipeRecommendationsUseCase(repository);
 });
 
-/// 레시피 추천 프로바이더
-/// 현재 재고(냉장고 + 재고)를 기반으로 레시피를 추천합니다.
+/// Provider for recipe recommendations based on current inventory.
+///
+/// An auto-dispose provider that generates recipe recommendations by
+/// analyzing items in the fridge and stock. Automatically fetches the
+/// latest inventory data and requests AI-generated recipes that can
+/// be made with available ingredients.
+///
+/// Returns a list of [Recipe] objects, or an empty list if no inventory
+/// is available or recipe generation fails.
 final recipeRecommendationsProvider =
     FutureProvider.autoDispose<List<Recipe>>((ref) async {
   final useCase = ref.watch(getRecipeRecommendationsUseCaseProvider);
   final fridgeItemsAsync = ref.watch(fridgeItemsProvider);
   final stockItemsAsync = ref.watch(stockItemsProvider);
 
-  // 재고 데이터가 로딩 중이면 대기
-  // FutureProvider는 자동으로 로딩 상태를 관리하므로
-  // 여기서는 데이터가 준비될 때까지 기다림
+  // Wait for inventory data to be ready
+  // FutureProvider automatically manages loading state,
+  // so we wait here until data is available
   List<FridgeItem> fridgeItems;
   List<StockItem> stockItems;
 
   if (fridgeItemsAsync.isLoading) {
-    // 로딩 중이면 데이터가 준비될 때까지 대기
+    // If loading, wait for data to be ready
     fridgeItems = await fridgeItemsAsync.when(
       data: (items) => Future.value(items),
       loading: () async {
-        // FutureProvider가 완료될 때까지 대기
+        // Wait for FutureProvider to complete
         await Future.delayed(const Duration(milliseconds: 100));
         return fridgeItemsAsync.value ?? <FridgeItem>[];
       },
@@ -51,11 +64,11 @@ final recipeRecommendationsProvider =
   }
 
   if (stockItemsAsync.isLoading) {
-    // 로딩 중이면 데이터가 준비될 때까지 대기
+    // If loading, wait for data to be ready
     stockItems = await stockItemsAsync.when(
       data: (items) => Future.value(items),
       loading: () async {
-        // FutureProvider가 완료될 때까지 대기
+        // Wait for FutureProvider to complete
         await Future.delayed(const Duration(milliseconds: 100));
         return stockItemsAsync.value ?? <StockItem>[];
       },
@@ -65,12 +78,12 @@ final recipeRecommendationsProvider =
     stockItems = stockItemsAsync.value ?? <StockItem>[];
   }
 
-  // 재고가 없으면 빈 리스트 반환
+  // Return empty list if no inventory is available
   if (fridgeItems.isEmpty && stockItems.isEmpty) {
     return [];
   }
 
-  // 레시피 추천 요청
+  // Request recipe recommendations
   return await useCase.call(
     fridgeItems: fridgeItems,
     stockItems: stockItems,

@@ -7,9 +7,39 @@ import '../../../fridge/presentation/providers/fridge_provider.dart';
 import '../../../fridge/domain/entities/fridge_item.dart';
 import '../widgets/near_expiry_item_tile.dart';
 
+// ============================================
+// Near Expiry List Page
+// ============================================
+
+/// Full list page displaying all items expiring within 7 days.
+///
+/// This page shows a complete, scrollable list of refrigerator items
+/// that are approaching their expiration date. It includes:
+/// - All items expiring within the next 7 days
+/// - Excludes frozen items (they don't expire while frozen)
+/// - Sorted by expiry date (soonest first)
+/// - Quick actions (Consume/Freeze) for each item
+/// - Undo functionality for consumed items
+///
+/// Features:
+/// - Empty state when no items are expiring
+/// - Loading and error states
+/// - Interactive tiles with consume and freeze actions
+/// - Snackbar feedback with undo option for deletions
+///
+/// This page is accessed from the "See more" button on the
+/// Near Expiry Section widget on the home page.
 class NearExpiryListPage extends ConsumerWidget {
   const NearExpiryListPage({super.key});
 
+  /// Builds the near expiry list page widget.
+  ///
+  /// Filters items to show only those expiring within 7 days,
+  /// excluding frozen items, and provides action buttons for each.
+  ///
+  /// Parameters:
+  /// - [context]: The build context
+  /// - [ref]: Widget ref for accessing providers
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fridgeItemsAsync = ref.watch(fridgeItemsProvider);

@@ -5,6 +5,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../household/presentation/providers/household_provider.dart';
 
+// ============================================
+// Username Registration Page
+// ============================================
+
+/// Page for registering a unique username.
+///
+/// This page allows users to register a unique username that other users
+/// can use to find and add them. The username can only be set once and
+/// cannot be changed later.
+///
+/// Features:
+/// - Real-time username availability checking
+/// - Input validation (3-20 alphanumeric characters)
+/// - Debounced API calls to check availability
+/// - Visual feedback for availability status
+/// - User guidance on username requirements
+///
+/// Responsibilities:
+/// - Validate username format
+/// - Check username availability in real-time
+/// - Register username via household provider
+/// - Handle success and error states
+/// - Navigate back after successful registration
+///
+/// Example usage in router:
+/// ```dart
+/// GoRoute(
+///   path: '/username-registration',
+///   builder: (context, state) => const UsernameRegistrationPage(),
+/// ),
+/// ```
 class UsernameRegistrationPage extends ConsumerStatefulWidget {
   const UsernameRegistrationPage({super.key});
 
@@ -15,12 +46,22 @@ class UsernameRegistrationPage extends ConsumerStatefulWidget {
 
 class _UsernameRegistrationPageState
     extends ConsumerState<UsernameRegistrationPage> {
+  /// Text controller for the username input field
   final _controller = TextEditingController();
+
+  /// Form key for validation
   final _formKey = GlobalKey<FormState>();
 
+  /// Whether an availability check is in progress
   bool _isChecking = false;
+
+  /// Whether the current username is available (null = not checked)
   bool? _isAvailable;
+
+  /// Error message from availability check
   String? _checkError;
+
+  /// Timer for debouncing username input
   Timer? _debounceTimer;
 
   @override
@@ -30,6 +71,14 @@ class _UsernameRegistrationPageState
     super.dispose();
   }
 
+  /// Handles username input changes.
+  ///
+  /// This method resets the availability state and schedules a debounced
+  /// availability check. The check is only performed if the input is not
+  /// empty and matches the required format.
+  ///
+  /// Parameters:
+  /// - [value]: The current username input value
   void _onUsernameChanged(String value) {
     setState(() {
       _isAvailable = null;
@@ -40,7 +89,7 @@ class _UsernameRegistrationPageState
 
     if (value.isEmpty) return;
 
-    // Validate format first
+    // Validate format before checking availability
     final usernameRegex = RegExp(r'^[a-zA-Z0-9]{3,20}$');
     if (!usernameRegex.hasMatch(value)) {
       return;
@@ -51,6 +100,13 @@ class _UsernameRegistrationPageState
     });
   }
 
+  /// Checks if the given username is available.
+  ///
+  /// This method queries the username repository to check availability.
+  /// It updates the UI state based on the result or any errors that occur.
+  ///
+  /// Parameters:
+  /// - [username]: The username to check for availability
   Future<void> _checkAvailability(String username) async {
     setState(() {
       _isChecking = true;
@@ -77,6 +133,17 @@ class _UsernameRegistrationPageState
     }
   }
 
+  /// Validates the username input.
+  ///
+  /// This method checks if the username meets all requirements:
+  /// - Not empty
+  /// - Between 3-20 characters
+  /// - Contains only alphanumeric characters (a-z, A-Z, 0-9)
+  ///
+  /// Parameters:
+  /// - [value]: The username value to validate
+  ///
+  /// Returns an error message if validation fails, null if valid.
   String? _validateUsername(String? value) {
     if (value == null || value.isEmpty) {
       return '아이디를 입력해주세요';
@@ -94,6 +161,11 @@ class _UsernameRegistrationPageState
     return null;
   }
 
+  /// Registers the username.
+  ///
+  /// This method validates the form and checks if the username is available
+  /// before attempting registration. On success, displays a success message
+  /// and navigates back. On failure, displays an error message.
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     if (_isAvailable != true) return;
@@ -110,7 +182,7 @@ class _UsernameRegistrationPageState
           backgroundColor: Colors.green,
         ),
       );
-      // Invalidate username provider to refresh
+      // Invalidate username provider to refresh the cached value
       ref.invalidate(currentUsernameProvider);
       context.pop();
     } else if (mounted) {
@@ -140,7 +212,7 @@ class _UsernameRegistrationPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Info card
+              // Information card explaining username requirements
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -212,7 +284,7 @@ class _UsernameRegistrationPageState
 
               const SizedBox(height: 8),
 
-              // Availability status
+              // Username availability status message
               if (_checkError != null)
                 _buildStatusText(_checkError!, Colors.red)
               else if (_isChecking)
@@ -256,6 +328,13 @@ class _UsernameRegistrationPageState
     );
   }
 
+  /// Builds the suffix icon for the username input field.
+  ///
+  /// Returns:
+  /// - Loading indicator while checking availability
+  /// - Check mark icon if username is available
+  /// - X mark icon if username is unavailable
+  /// - null if no check has been performed
   Widget? _buildSuffixIcon() {
     if (_isChecking) {
       return const Padding(
@@ -276,6 +355,13 @@ class _UsernameRegistrationPageState
     return null;
   }
 
+  /// Builds a status text widget with the given text and color.
+  ///
+  /// Parameters:
+  /// - [text]: The status message to display
+  /// - [color]: The color for the text
+  ///
+  /// Returns a styled Text widget for displaying status messages.
   Widget _buildStatusText(String text, Color color) {
     return Padding(
       padding: const EdgeInsets.only(left: 12),

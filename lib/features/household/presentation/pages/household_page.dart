@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/household_provider.dart';
@@ -21,7 +22,14 @@ class HouseholdPage extends ConsumerWidget {
           if (household == null) {
             return _buildNoHouseholdView(context, ref);
           }
-          return _buildHouseholdView(context, ref, household.name, members.length, canManage);
+          return _buildHouseholdView(
+            context,
+            ref,
+            householdName: household.name,
+            memberCount: members.length,
+            canManage: canManage,
+            inviteCode: household.inviteCode,
+          );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('오류: $error')),
@@ -81,16 +89,18 @@ class HouseholdPage extends ConsumerWidget {
 
   Widget _buildHouseholdView(
     BuildContext context,
-    WidgetRef ref,
-    String householdName,
-    int memberCount,
-    bool canManage,
-  ) {
+    WidgetRef ref, {
+    required String householdName,
+    required int memberCount,
+    required bool canManage,
+    required String inviteCode,
+  }) {
     final pendingCount = ref.watch(pendingRequestsCountProvider);
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // 가구 정보 카드
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -127,6 +137,62 @@ class HouseholdPage extends ConsumerWidget {
             ),
           ),
         ),
+        const SizedBox(height: 12),
+
+        // 초대 코드 카드
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '내 초대 코드',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        inviteCode,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 4,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.copy),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: inviteCode));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('초대 코드가 복사되었습니다')),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.qr_code),
+                      onPressed: () => context.push('/household/invite'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '이 코드를 공유하여 다른 사람을 초대하세요',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 16),
 
         // 받은 요청 (배지 표시)
@@ -153,14 +219,6 @@ class HouseholdPage extends ConsumerWidget {
           onTap: () => context.push('/household/members'),
         ),
         if (canManage) ...[
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.qr_code),
-            title: const Text('QR/코드로 초대'),
-            subtitle: const Text('초대 코드로 새 멤버 초대'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/household/invite'),
-          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.person_search),

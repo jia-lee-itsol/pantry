@@ -5,18 +5,33 @@ import '../../domain/repositories/barcode_repository.dart';
 import '../../domain/usecases/scan_barcode_usecase.dart';
 import '../../../../core/services/barcode_service.dart';
 
-/// 바코드 리포지토리 프로바이더
+/// Provider for the barcode repository.
+///
+/// Exposes the [BarcodeRepository] interface, implemented by the core
+/// barcode service. Enables dependency injection for barcode operations.
 final barcodeRepositoryProvider = Provider<BarcodeRepository>((ref) {
   return ref.watch(barcodeServiceProvider);
 });
 
-/// 바코드 스캔 유스케이스 프로바이더
+/// Provider for the scan barcode use case.
+///
+/// Creates an instance of [ScanBarcodeUseCase] with the injected
+/// barcode repository, following clean architecture principles.
 final scanBarcodeUseCaseProvider = Provider<ScanBarcodeUseCase>((ref) {
   final repository = ref.watch(barcodeRepositoryProvider);
   return ScanBarcodeUseCase(repository);
 });
 
-/// 바코드 스캔 프로바이더
+/// Provider for barcode scanning operations.
+///
+/// A family provider that accepts an image path and returns the scan result.
+/// Executes the barcode scanning use case and handles loading/error states
+/// automatically through Riverpod's AsyncValue.
+///
+/// Parameters:
+///   [imagePath] - The file path of the image to scan
+///
+/// Returns a [BarcodeResult] if a barcode is found, null otherwise.
 final barcodeScanProvider =
     FutureProvider.family<BarcodeResult?, String>((ref, imagePath) async {
   final useCase = ref.watch(scanBarcodeUseCaseProvider);

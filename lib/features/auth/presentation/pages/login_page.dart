@@ -6,7 +6,30 @@ import '../../../../core/design/spacing.dart';
 import '../../../../core/design/color_schemes.dart';
 import '../providers/auth_provider.dart';
 
-/// 로그인 페이지
+// ============================================
+// Login Page
+// ============================================
+
+/// Login page providing social authentication options.
+///
+/// This page displays the app logo and provides buttons for signing in
+/// with Google and Apple (on supported platforms). Upon successful
+/// authentication, the user is navigated to the home screen.
+///
+/// Responsibilities:
+/// - Display app branding and description
+/// - Provide Google Sign-In option
+/// - Provide Apple Sign-In option (iOS/macOS only)
+/// - Handle authentication success and errors
+/// - Navigate to home screen after successful login
+///
+/// Example usage in router:
+/// ```dart
+/// GoRoute(
+///   path: '/login',
+///   builder: (context, state) => const LoginPage(),
+/// ),
+/// ```
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -28,7 +51,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 앱 로고
+                // App logo
                 Image.asset(
                   'assets/icons/logo.png',
                   width: 200,
@@ -37,7 +60,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
                 const SizedBox(height: AppSpacing.xl),
 
-                // 설명 텍스트
+                // Description text
                 Text(
                   '冷蔵庫と備蓄品を管理',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -47,7 +70,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
                 const SizedBox(height: AppSpacing.xxl),
 
-                // 구글 로그인 버튼
+                // Google Sign-In button
                 _SocialLoginButton(
                   icon: Icons.g_mobiledata,
                   label: 'Googleで始める',
@@ -58,7 +81,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
                 const SizedBox(height: AppSpacing.md),
 
-                // 애플 로그인 버튼 (iOS/macOS만)
+                // Apple Sign-In button (iOS/macOS only)
                 if (isAppleSignInAvailable)
                   _SocialLoginButton(
                     icon: Icons.apple,
@@ -75,6 +98,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
+  /// Handles the Google Sign-In button press.
+  ///
+  /// This method executes the Google Sign-In use case and handles
+  /// success and error scenarios. On success, navigates to the home page.
+  /// On error, displays an error message via SnackBar.
+  ///
+  /// Parameters:
+  /// - [context]: The build context for navigation and UI updates
+  /// - [ref]: The widget ref for accessing providers
   Future<void> _handleGoogleSignIn(BuildContext context, WidgetRef ref) async {
     debugPrint('[LoginPage] 구글 로그인 버튼 클릭됨');
     try {
@@ -88,7 +120,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       if (context.mounted) {
         debugPrint('[LoginPage] 로그인 성공 - 홈으로 이동');
-        // 로그인 성공 시 홈으로 이동
+        // Navigate to home on successful login
         context.go('/');
       } else {
         debugPrint('[LoginPage] Context가 mounted되지 않음');
@@ -100,7 +132,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       debugPrint('[LoginPage] 스택 트레이스: $stackTrace');
 
       if (context.mounted) {
-        // 에러 메시지가 너무 길면 요약
+        // Summarize error message if too long
         final errorMessage = e.toString().length > 100
             ? 'Googleログインに失敗しました。設定を確認してください。'
             : 'Googleログインに失敗しました: ${e.toString().replaceAll('Exception: ', '')}';
@@ -119,13 +151,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
+  /// Handles the Apple Sign-In button press.
+  ///
+  /// This method executes the Apple Sign-In use case and handles
+  /// success and error scenarios. On success, navigates to the home page.
+  /// On error, displays an error message via SnackBar.
+  ///
+  /// Parameters:
+  /// - [context]: The build context for navigation and UI updates
+  /// - [ref]: The widget ref for accessing providers
   Future<void> _handleAppleSignIn(BuildContext context, WidgetRef ref) async {
     try {
       final useCase = ref.read(signInWithAppleUseCaseProvider);
       await useCase();
 
       if (context.mounted) {
-        // 로그인 성공 시 홈으로 이동
+        // Navigate to home on successful login
         context.go('/');
       }
     } catch (e) {
@@ -141,13 +182,39 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 }
 
-/// 소셜 로그인 버튼 위젯
+// ============================================
+// Social Login Button Widget
+// ============================================
+
+/// A customizable social login button widget.
+///
+/// This widget creates a full-width button with an icon and label,
+/// styled according to the social provider's branding.
+///
+/// Properties:
+/// - [icon]: The icon to display (e.g., Google or Apple icon)
+/// - [label]: The button text label
+/// - [onPressed]: Callback when the button is pressed
+/// - [backgroundColor]: The button background color
+/// - [textColor]: The text and icon color
+/// - [borderColor]: Optional border color
 class _SocialLoginButton extends StatelessWidget {
+  /// The icon to display on the button
   final IconData icon;
+
+  /// The text label for the button
   final String label;
+
+  /// Callback invoked when the button is pressed
   final VoidCallback onPressed;
+
+  /// Background color of the button
   final Color backgroundColor;
+
+  /// Color of the text and icon
   final Color textColor;
+
+  /// Optional border color
   final Color? borderColor;
 
   const _SocialLoginButton({

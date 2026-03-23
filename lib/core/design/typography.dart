@@ -1,10 +1,26 @@
 import 'package:flutter/material.dart';
 
+/// Application Typography
+///
+/// Defines the text styles used throughout the application.
+/// Follows Material Design 3 typography guidelines with custom sizing
+/// and weight configurations.
+///
+/// Text Style Categories:
+/// - Headlines: Large, bold text for major headings
+/// - Titles: Medium-weight text for section headings
+/// - Body: Regular text for content
+/// - Labels: Medium-weight text for UI elements like buttons
+///
+/// All methods are static and the constructor is private to prevent instantiation.
 class AppTypography {
   AppTypography._();
 
+  /// Application text theme
+  ///
+  /// Provides a complete set of text styles following Material Design 3.
   static const TextTheme textTheme = TextTheme(
-    // Headlines
+    // Headlines - Large, bold text for major headings
     headlineLarge: TextStyle(
       fontSize: 32,
       fontWeight: FontWeight.bold,
@@ -23,7 +39,7 @@ class AppTypography {
       height: 1.3,
     ),
 
-    // Titles
+    // Titles - Medium-weight text for section headings
     titleLarge: TextStyle(
       fontSize: 22,
       fontWeight: FontWeight.w600,
@@ -40,7 +56,7 @@ class AppTypography {
       height: 1.4,
     ),
 
-    // Body
+    // Body - Regular text for content
     bodyLarge: TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.normal,
@@ -57,7 +73,7 @@ class AppTypography {
       height: 1.5,
     ),
 
-    // Labels
+    // Labels - Medium-weight text for UI elements
     labelLarge: TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.w500,

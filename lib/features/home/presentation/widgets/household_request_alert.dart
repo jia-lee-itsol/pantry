@@ -5,9 +5,40 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/design/spacing.dart';
 import '../../../household/presentation/providers/household_provider.dart';
 
+// ============================================
+// Household Request Alert Widget
+// ============================================
+
+/// Alert card widget for displaying pending household management requests.
+///
+/// This widget shows a blue alert when there are pending requests from
+/// household members to join or share pantry management. It includes:
+/// - Mail icon with badge showing pending count
+/// - Message indicating number of pending requests
+/// - Tap functionality to navigate to the household requests page
+///
+/// The card automatically hides when there are no pending requests,
+/// showing only when user action is needed.
+///
+/// Visual design:
+/// - Blue color scheme to indicate information/action needed
+/// - Badge on mail icon showing count
+/// - Rounded corners with border
+/// - Tappable with visual feedback
+///
+/// This alert is typically displayed at the top of the home page
+/// to ensure users see important household collaboration requests.
 class HouseholdRequestAlert extends ConsumerWidget {
   const HouseholdRequestAlert({super.key});
 
+  /// Builds the household request alert card widget.
+  ///
+  /// Returns an empty widget if count is 0, otherwise displays
+  /// a blue alert card with request count and navigation.
+  ///
+  /// Parameters:
+  /// - [context]: The build context
+  /// - [ref]: Widget ref for accessing providers
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pendingCount = ref.watch(pendingRequestsCountProvider);

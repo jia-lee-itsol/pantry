@@ -8,15 +8,56 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/user.dart';
 
-/// Firebase Authentication을 사용한 인증 데이터 소스
+// ============================================
+// Firebase Authentication Data Source
+// ============================================
+
+/// Firebase Authentication data source for handling user authentication operations.
+///
+/// This class provides authentication functionality using Firebase Auth,
+/// including Google Sign-In and Apple Sign-In integrations.
+///
+/// Responsibilities:
+/// - Managing Firebase Authentication instance
+/// - Handling Google OAuth flow
+/// - Handling Apple OAuth flow
+/// - Converting Firebase User to domain User entity
+/// - Managing authentication state changes
+///
+/// Example:
+/// ```dart
+/// final dataSource = AuthFirebaseDataSource();
+/// final user = await dataSource.signInWithGoogle();
+/// print('Logged in as: ${user.email}');
+/// ```
 class AuthFirebaseDataSource {
+  // ============================================
+  // Private Fields
+  // ============================================
+
+  /// Firebase Authentication instance
   final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
+
+  /// Google Sign-In instance with iOS client ID from GoogleService-Info.plist
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // iOS용 클라이언트 ID (GoogleService-Info.plist의 CLIENT_ID)
     clientId: '630905075034-fretpu1g28q0tpgq2ekakdtkt5q2fil1.apps.googleusercontent.com',
   );
 
-  /// 현재 로그인한 사용자 정보를 가져옵니다.
+  // ============================================
+  // Public Methods
+  // ============================================
+
+  /// Gets the currently logged-in user information.
+  ///
+  /// Returns the current [User] if authenticated, null otherwise.
+  ///
+  /// Example:
+  /// ```dart
+  /// final user = dataSource.getCurrentUser();
+  /// if (user != null) {
+  ///   print('Current user: ${user.email}');
+  /// }
+  /// ```
   User? getCurrentUser() {
     final firebaseUser = _auth.currentUser;
     if (firebaseUser == null) {
@@ -25,7 +66,32 @@ class AuthFirebaseDataSource {
     return _mapFirebaseUserToUser(firebaseUser);
   }
 
-  /// 구글 로그인을 수행합니다.
+  /// Performs Google Sign-In authentication.
+  ///
+  /// This method handles the complete Google OAuth flow:
+  /// 1. Initiates Google Sign-In dialog
+  /// 2. Obtains Google authentication credentials
+  /// 3. Creates Firebase credentials from Google tokens
+  /// 4. Signs in to Firebase with the credentials
+  /// 5. Returns the authenticated user
+  ///
+  /// Returns a [User] object containing the authenticated user information.
+  ///
+  /// Throws:
+  /// - [Exception] if user cancels the sign-in
+  /// - [Exception] if Firebase user is null after sign-in
+  /// - [PlatformException] if there's a configuration issue
+  /// - Other exceptions for network or authentication failures
+  ///
+  /// Example:
+  /// ```dart
+  /// try {
+  ///   final user = await dataSource.signInWithGoogle();
+  ///   print('Signed in: ${user.email}');
+  /// } catch (e) {
+  ///   print('Sign-in failed: $e');
+  /// }
+  /// ```
   Future<User> signInWithGoogle() async {
     try {
       debugPrint('[Google Sign-In] 구글 로그인 시작');
@@ -116,7 +182,35 @@ class AuthFirebaseDataSource {
     }
   }
 
-  /// 애플 로그인을 수행합니다.
+  /// Performs Apple Sign-In authentication.
+  ///
+  /// This method handles the complete Apple OAuth flow:
+  /// 1. Verifies platform support (iOS/macOS only)
+  /// 2. Requests Apple ID credentials with email and name scopes
+  /// 3. Creates Firebase OAuth credentials
+  /// 4. Signs in to Firebase with the credentials
+  /// 5. Updates display name if provided by Apple
+  ///
+  /// Returns a [User] object containing the authenticated user information.
+  ///
+  /// Throws:
+  /// - [Exception] if platform is not iOS or macOS
+  /// - [Exception] if Firebase user is null after sign-in
+  /// - [SignInWithAppleAuthorizationException] if user cancels or authorization fails
+  ///
+  /// Note: Only supported on iOS and macOS platforms.
+  ///
+  /// Example:
+  /// ```dart
+  /// if (Platform.isIOS || Platform.isMacOS) {
+  ///   try {
+  ///     final user = await dataSource.signInWithApple();
+  ///     print('Signed in: ${user.email}');
+  ///   } catch (e) {
+  ///     print('Apple sign-in failed: $e');
+  ///   }
+  /// }
+  /// ```
   Future<User> signInWithApple() async {
     try {
       // 플랫폼 체크 (iOS/macOS만 지원)
@@ -179,7 +273,22 @@ class AuthFirebaseDataSource {
     }
   }
 
-  /// 로그아웃을 수행합니다.
+  /// Signs out the current user from Firebase and Google.
+  ///
+  /// This method signs out from both Firebase Auth and Google Sign-In
+  /// to ensure complete logout.
+  ///
+  /// Throws any exceptions that occur during the sign-out process.
+  ///
+  /// Example:
+  /// ```dart
+  /// try {
+  ///   await dataSource.signOut();
+  ///   print('Signed out successfully');
+  /// } catch (e) {
+  ///   print('Sign-out failed: $e');
+  /// }
+  /// ```
   Future<void> signOut() async {
     try {
       await Future.wait([_auth.signOut(), _googleSignIn.signOut()]);
@@ -189,7 +298,29 @@ class AuthFirebaseDataSource {
     }
   }
 
-  /// 계정을 삭제합니다.
+  /// Deletes the current user's account.
+  ///
+  /// This method permanently deletes the user's Firebase account and
+  /// disconnects from Google Sign-In.
+  ///
+  /// Throws:
+  /// - [Exception] if no user is currently logged in
+  /// - [firebase_auth.FirebaseAuthException] with code 'requires-recent-login'
+  ///   if the user needs to re-authenticate for security reasons
+  ///
+  /// Note: For security, this operation may require the user to have
+  /// recently signed in. If the user hasn't signed in recently, they will
+  /// need to sign out and sign in again before deleting their account.
+  ///
+  /// Example:
+  /// ```dart
+  /// try {
+  ///   await dataSource.deleteAccount();
+  ///   print('Account deleted successfully');
+  /// } catch (e) {
+  ///   print('Account deletion failed: $e');
+  /// }
+  /// ```
   Future<void> deleteAccount() async {
     try {
       final user = _auth.currentUser;
@@ -217,7 +348,25 @@ class AuthFirebaseDataSource {
     }
   }
 
-  /// 인증 상태 변화를 스트림으로 반환합니다.
+  /// Returns a stream of authentication state changes.
+  ///
+  /// This stream emits a new [User] object whenever the authentication
+  /// state changes (e.g., user signs in, signs out, or token is refreshed).
+  ///
+  /// Returns a [Stream<User?>] that emits:
+  /// - A [User] object when a user is signed in
+  /// - null when no user is signed in
+  ///
+  /// Example:
+  /// ```dart
+  /// dataSource.authStateChanges().listen((user) {
+  ///   if (user != null) {
+  ///     print('User signed in: ${user.email}');
+  ///   } else {
+  ///     print('User signed out');
+  ///   }
+  /// });
+  /// ```
   Stream<User?> authStateChanges() {
     return _auth.authStateChanges().map((firebaseUser) {
       if (firebaseUser == null) {
@@ -227,7 +376,24 @@ class AuthFirebaseDataSource {
     });
   }
 
-  /// Firebase User를 앱의 User 엔티티로 변환합니다.
+  // ============================================
+  // Private Helper Methods
+  // ============================================
+
+  /// Converts a Firebase User to the app's User entity.
+  ///
+  /// This method maps Firebase User properties to the domain User entity,
+  /// extracting the provider ID from the user's provider data.
+  ///
+  /// Parameters:
+  /// - [firebaseUser]: The Firebase User object to convert
+  ///
+  /// Returns a [User] entity with mapped properties including:
+  /// - id (from Firebase UID)
+  /// - email
+  /// - displayName
+  /// - photoUrl
+  /// - providerId (e.g., 'google.com' or 'apple.com')
   User _mapFirebaseUserToUser(firebase_auth.User firebaseUser) {
     // Provider ID 확인 (구글 또는 애플)
     String? providerId;

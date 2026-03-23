@@ -1,94 +1,134 @@
 import 'package:permission_handler/permission_handler.dart';
 
+/// Permission Service
+///
+/// Manages runtime permissions for the application using the permission_handler package.
+/// This service provides methods to request and check various permissions required
+/// by the app, including location, camera, and photo library access.
+///
+/// All methods are static and the constructor is private to prevent instantiation.
 class PermissionService {
   PermissionService._();
 
-  /// 위치 및 카메라 권한 요청
+  /// Requests all necessary permissions
+  ///
+  /// Requests location, camera, and photo library permissions simultaneously.
+  /// This is typically called during app initialization or onboarding.
+  ///
+  /// Returns: Map of permissions to their status after the request
   static Future<Map<Permission, PermissionStatus>>
   requestAllPermissions() async {
     try {
       final permissions = [
         Permission.location,
         Permission.camera,
-        Permission.photos, // iOS에서 사진 라이브러리 접근용
+        Permission.photos, // For photo library access on iOS
       ];
 
       final statuses = await permissions.request();
       return statuses;
     } catch (e) {
-      // MissingPluginException 등 에러 발생 시 빈 맵 반환
+      // Return empty map if error occurs (e.g., MissingPluginException)
       return {};
     }
   }
 
-  /// 위치 권한 확인
+  /// Checks if location permission is granted
+  ///
+  /// Returns: `true` if location permission is granted, `false` otherwise
   static Future<bool> checkLocationPermission() async {
     final status = await Permission.location.status;
     return status.isGranted;
   }
 
-  /// 카메라 권한 확인
+  /// Checks if camera permission is granted
+  ///
+  /// Returns: `true` if camera permission is granted, `false` otherwise
   static Future<bool> checkCameraPermission() async {
     final status = await Permission.camera.status;
     return status.isGranted;
   }
 
-  /// 위치 권한 요청
+  /// Requests location permission
+  ///
+  /// Returns: `true` if permission is granted after request, `false` otherwise
   static Future<bool> requestLocationPermission() async {
     final status = await Permission.location.request();
     return status.isGranted;
   }
 
-  /// 카메라 권한 요청
+  /// Requests camera permission
+  ///
+  /// Returns: `true` if permission is granted after request, `false` otherwise
   static Future<bool> requestCameraPermission() async {
     final status = await Permission.camera.request();
     return status.isGranted;
   }
 
-  /// 사진 라이브러리 권한 요청 (iOS)
+  /// Requests photo library permission (iOS)
+  ///
+  /// Returns: `true` if permission is granted after request, `false` otherwise
   static Future<bool> requestPhotoLibraryPermission() async {
     final status = await Permission.photos.request();
     return status.isGranted;
   }
 
-  /// 사진 라이브러리 권한 확인
+  /// Checks if photo library permission is granted
+  ///
+  /// Returns: `true` if photo library permission is granted, `false` otherwise
   static Future<bool> checkPhotoLibraryPermission() async {
     final status = await Permission.photos.status;
     return status.isGranted;
   }
 
-  /// 사진 라이브러리 권한이 영구적으로 거부되었는지 확인
+  /// Checks if photo library permission is permanently denied
+  ///
+  /// Returns: `true` if permission is permanently denied, `false` otherwise
   static Future<bool> isPhotoLibraryPermanentlyDenied() async {
     final status = await Permission.photos.status;
     return status.isPermanentlyDenied;
   }
 
-  /// 위치 권한이 영구적으로 거부되었는지 확인
+  /// Checks if location permission is permanently denied
+  ///
+  /// Returns: `true` if permission is permanently denied, `false` otherwise
   static Future<bool> isLocationPermanentlyDenied() async {
     final status = await Permission.location.status;
     return status.isPermanentlyDenied;
   }
 
-  /// 카메라 권한이 영구적으로 거부되었는지 확인
+  /// Checks if camera permission is permanently denied
+  ///
+  /// Returns: `true` if permission is permanently denied, `false` otherwise
   static Future<bool> isCameraPermanentlyDenied() async {
     final status = await Permission.camera.status;
     return status.isPermanentlyDenied;
   }
 
-  /// 카메라 권한이 설정에서만 변경 가능한지 확인 (denied 또는 permanentlyDenied)
-  /// iOS에서는 한 번 거부하면 재요청이 불가능하므로 설정으로 이동해야 함
+  /// Checks if settings must be opened for camera permission
+  ///
+  /// On iOS, once a permission is denied, it cannot be re-requested
+  /// and the user must go to Settings to change it.
+  ///
+  /// Returns: `true` if user must open settings to change permission
   static Future<bool> shouldOpenSettingsForCamera() async {
     final status = await Permission.camera.status;
     return status.isDenied || status.isPermanentlyDenied;
   }
 
-  /// 사진 라이브러리 권한이 설정에서만 변경 가능한지 확인
+  /// Checks if settings must be opened for photo library permission
+  ///
+  /// Returns: `true` if user must open settings to change permission
   static Future<bool> shouldOpenSettingsForPhotoLibrary() async {
     final status = await Permission.photos.status;
     return status.isDenied || status.isPermanentlyDenied;
   }
 
-  /// 설정 앱 열기
+  /// Opens the app settings page
+  ///
+  /// This allows the user to manually change permissions in the device settings.
+  ///
+  /// Returns: `true` if settings were opened successfully, `false` otherwise
   static Future<bool> openSettings() async {
     return await openAppSettings();
   }

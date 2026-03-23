@@ -135,75 +135,10 @@ class _SaleItemsPageState extends State<SaleItemsPage> {
   }
 
   void _loadSaleItems(Position currentPosition) {
-    // 목업 데이터 - 실제로는 API에서 가져올 데이터
-    final mockSaleItems = [
-      {
-        'id': '1',
-        'storeName': 'スーパーマーケット',
-        'productName': '新鮮野菜セット',
-        'discount': '30% OFF',
-        'latitude': currentPosition.latitude + 0.01,
-        'longitude': currentPosition.longitude + 0.01,
-      },
-      {
-        'id': '2',
-        'storeName': 'フレッシュマート',
-        'productName': '国産牛肉',
-        'discount': '20% OFF',
-        'latitude': currentPosition.latitude - 0.008,
-        'longitude': currentPosition.longitude + 0.015,
-      },
-      {
-        'id': '3',
-        'storeName': 'デイリーマート',
-        'productName': 'フルーツ特価',
-        'discount': '15% OFF',
-        'latitude': currentPosition.latitude + 0.015,
-        'longitude': currentPosition.longitude - 0.01,
-      },
-      {
-        'id': '4',
-        'storeName': 'グリーンマート',
-        'productName': '魚刺身セット',
-        'discount': '25% OFF',
-        'latitude': currentPosition.latitude - 0.012,
-        'longitude': currentPosition.longitude - 0.008,
-      },
-      {
-        'id': '5',
-        'storeName': 'マート365',
-        'productName': '有機牛乳',
-        'discount': '10% OFF',
-        'latitude': currentPosition.latitude + 0.02,
-        'longitude': currentPosition.longitude + 0.02,
-      },
-    ];
-
-    final items = mockSaleItems.map((item) {
-      final distance = Geolocator.distanceBetween(
-        currentPosition.latitude,
-        currentPosition.longitude,
-        item['latitude'] as double,
-        item['longitude'] as double,
-      ) / 1000; // km로 변환
-
-      return SaleItem(
-        id: item['id'] as String,
-        storeName: item['storeName'] as String,
-        productName: item['productName'] as String,
-        discount: item['discount'] as String,
-        latitude: item['latitude'] as double,
-        longitude: item['longitude'] as double,
-        distance: distance,
-      );
-    }).toList();
-
-    // 거리순으로 정렬
-    items.sort((a, b) => a.distance.compareTo(b.distance));
-
+    // TODO: 실제 API 연동 필요
+    // 현재는 빈 리스트 반환
     setState(() {
       _saleItems.clear();
-      _saleItems.addAll(items);
     });
   }
 

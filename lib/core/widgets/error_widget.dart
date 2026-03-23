@@ -1,7 +1,20 @@
 import 'package:flutter/material.dart';
 
+/// Error Display Widget
+///
+/// A reusable error state widget that displays an error message
+/// with an optional retry button. Used throughout the application
+/// to handle and display error states.
+///
+/// Features:
+/// - Error icon with theme-aware color
+/// - Customizable error message
+/// - Optional retry callback
 class ErrorDisplayWidget extends StatelessWidget {
+  /// The error message to display
   final String message;
+
+  /// Optional callback for retry action
   final VoidCallback? onRetry;
 
   const ErrorDisplayWidget({
@@ -31,7 +44,7 @@ class ErrorDisplayWidget extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: onRetry,
-              child: const Text('再試行'),
+              child: const Text('Retry'),
             ),
           ],
         ],

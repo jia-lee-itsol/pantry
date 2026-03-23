@@ -2,14 +2,30 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
-/// 이미지 캐싱 서비스
-/// OCR 스캔 이미지 및 기타 이미지 파일을 캐시하여 성능을 최적화합니다.
+/// Image Cache Service
+///
+/// Manages image caching to optimize performance for OCR scanned images
+/// and other image files. This service handles automatic cache cleanup
+/// based on size and age constraints.
+///
+/// Cache Constraints:
+/// - Maximum cache size: 50MB
+/// - Maximum cache age: 7 days
+/// - Automatic cleanup when limits are exceeded
 class ImageCacheService {
   static const String _cacheDirName = 'image_cache';
   static const int _maxCacheSize = 50 * 1024 * 1024; // 50MB
-  static const int _maxCacheAge = 7 * 24 * 60 * 60; // 7일
+  static const int _maxCacheAge = 7 * 24 * 60 * 60; // 7 days in seconds
 
-  /// 이미지를 캐시 디렉토리에 복사
+  /// Copies an image to the cache directory
+  ///
+  /// If the image already exists in cache, returns the existing path.
+  /// Automatically checks cache size and cleans up old files if needed.
+  ///
+  /// Parameters:
+  ///   - sourcePath: The file path of the source image to cache
+  ///
+  /// Returns: The cached image path if successful, null otherwise
   Future<String?> cacheImage(String sourcePath) async {
     try {
       final sourceFile = File(sourcePath);
@@ -40,7 +56,14 @@ class ImageCacheService {
     }
   }
 
-  /// 캐시된 이미지 경로 가져오기
+  /// Gets the cached image path
+  ///
+  /// Retrieves the file path for a cached image by its filename.
+  ///
+  /// Parameters:
+  ///   - fileName: The name of the cached image file
+  ///
+  /// Returns: The cached image path if it exists, null otherwise
   Future<String?> getCachedImagePath(String fileName) async {
     try {
       final cacheDir = await _getCacheDirectory();
@@ -58,7 +81,11 @@ class ImageCacheService {
     }
   }
 
-  /// 캐시 디렉토리 가져오기
+  /// Gets the cache directory
+  ///
+  /// Creates the cache directory if it doesn't exist.
+  ///
+  /// Returns: The cache directory if successful, null otherwise
   Future<Directory?> _getCacheDirectory() async {
     try {
       final appDir = await getApplicationDocumentsDirectory();
@@ -74,7 +101,15 @@ class ImageCacheService {
     }
   }
 
-  /// 캐시 크기 확인 및 정리
+  /// Checks cache size and cleans up if needed
+  ///
+  /// This method performs two types of cleanup:
+  /// 1. Size-based: If total cache size exceeds the limit, deletes oldest files
+  ///    until cache is reduced to 80% of the maximum size
+  /// 2. Age-based: Deletes files older than 7 days
+  ///
+  /// Parameters:
+  ///   - cacheDir: The cache directory to clean
   Future<void> _cleanCacheIfNeeded(Directory cacheDir) async {
     try {
       final files = await cacheDir.list().toList();
@@ -93,12 +128,12 @@ class ImageCacheService {
         }
       }
 
-      // 캐시 크기가 제한을 초과하면 오래된 파일부터 삭제
+      // Delete old files if cache size exceeds limit
       if (totalSize > _maxCacheSize) {
         fileInfos.sort((a, b) => a.modified.compareTo(b.modified));
 
         for (final fileInfo in fileInfos) {
-          if (totalSize <= _maxCacheSize * 0.8) break; // 80%까지 줄임
+          if (totalSize <= _maxCacheSize * 0.8) break; // Reduce to 80%
 
           final file = File(fileInfo.path);
           if (await file.exists()) {
@@ -108,7 +143,7 @@ class ImageCacheService {
         }
       }
 
-      // 오래된 파일 삭제 (7일 이상)
+      // Delete files older than 7 days
       final now = DateTime.now();
       for (final fileInfo in fileInfos) {
         final age = now.difference(fileInfo.modified).inSeconds;
@@ -120,11 +155,13 @@ class ImageCacheService {
         }
       }
     } catch (e) {
-      // 캐시 정리 실패는 무시
+      // Ignore cache cleanup failures
     }
   }
 
-  /// 모든 캐시 삭제
+  /// Clears all cached images
+  ///
+  /// Deletes the entire cache directory and all its contents.
   Future<void> clearCache() async {
     try {
       final cacheDir = await _getCacheDirectory();
@@ -136,7 +173,11 @@ class ImageCacheService {
     }
   }
 
-  /// 캐시 크기 가져오기
+  /// Gets the total size of the cache
+  ///
+  /// Calculates and returns the total size in bytes of all cached files.
+  ///
+  /// Returns: Total cache size in bytes, or 0 if unable to calculate
   Future<int> getCacheSize() async {
     try {
       final cacheDir = await _getCacheDirectory();
@@ -156,9 +197,18 @@ class ImageCacheService {
   }
 }
 
+/// Internal class for tracking cached file metadata
+///
+/// Used for cache cleanup operations to sort and manage files
+/// based on size and modification date.
 class _FileInfo {
+  /// The file path
   final String path;
+
+  /// The file size in bytes
   final int size;
+
+  /// The last modification date
   final DateTime modified;
 
   _FileInfo({

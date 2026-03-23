@@ -3,15 +3,28 @@ import 'package:flutter/material.dart';
 import 'color_schemes.dart';
 import 'typography.dart';
 
+/// Application Theme
+///
+/// Provides the centralized theme configuration for the application.
+/// Uses Material Design 3 with custom color schemes and typography.
+///
+/// All methods are static and the constructor is private to prevent instantiation.
 class AppTheme {
   AppTheme._();
 
+  /// Light theme configuration
+  ///
+  /// Returns a ThemeData configured for light mode with:
+  /// - Material Design 3 enabled
+  /// - Custom color scheme (pastel green palette)
+  /// - Custom typography
+  /// - Styled components (AppBar, Buttons, Cards, Inputs)
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: AppColorSchemes.light,
       textTheme: AppTypography.textTheme,
-      
+
       // AppBar Theme
       appBarTheme: AppBarTheme(
         centerTitle: false,

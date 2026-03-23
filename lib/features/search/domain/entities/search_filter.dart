@@ -1,14 +1,32 @@
 import 'search_result.dart';
 
-/// Filter options for advanced search.
+/// Domain entity representing filter criteria for searching items.
+///
+/// This entity encapsulates all possible filter options including text query,
+/// source filtering, category filtering, and status-based filters (low stock,
+/// near expiry, expired).
 class SearchFilter {
+  /// Text query for searching by item name
   final String? query;
+
+  /// Set of sources to search in (fridge and/or stock)
   final Set<SearchResultSource> sources;
+
+  /// Set of categories to filter by
   final Set<String> categories;
+
+  /// Whether to show only items with low stock
   final bool? showOnlyLowStock;
+
+  /// Whether to show only items nearing expiration
   final bool? showOnlyNearExpiry;
+
+  /// Whether to show only expired items
   final bool? showOnlyExpired;
 
+  /// Creates a [SearchFilter] instance.
+  ///
+  /// By default, searches both fridge and stock with no other filters applied.
   const SearchFilter({
     this.query,
     this.sources = const {SearchResultSource.fridge, SearchResultSource.stock},
@@ -18,6 +36,10 @@ class SearchFilter {
     this.showOnlyExpired,
   });
 
+  /// Creates a copy of this filter with the given fields replaced.
+  ///
+  /// Returns a new [SearchFilter] instance with updated values for any
+  /// non-null parameters, keeping existing values for null parameters.
   SearchFilter copyWith({
     String? query,
     Set<SearchResultSource>? sources,
@@ -36,6 +58,10 @@ class SearchFilter {
     );
   }
 
+  /// Checks if any filters are currently active.
+  ///
+  /// Returns true if there's a search query, limited sources, selected
+  /// categories, or any status filters enabled.
   bool get hasActiveFilters {
     return (query?.isNotEmpty ?? false) ||
         sources.length < 2 ||

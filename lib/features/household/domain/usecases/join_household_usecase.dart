@@ -23,7 +23,11 @@ class JoinHouseholdUseCase {
 
     await repository.addMember(inviteCode.householdId, member);
     await repository.setUserHouseholdId(userId, inviteCode.householdId);
-    await repository.markInviteCodeUsed(inviteCode.householdId, inviteCode.id);
+
+    // Only mark temporary codes as used (permanent codes can be reused)
+    if (!inviteCode.isPermanent) {
+      await repository.markInviteCodeUsed(inviteCode.householdId, inviteCode.id);
+    }
 
     await repository.notifyOwnerOfNewMember(
       householdId: inviteCode.householdId,

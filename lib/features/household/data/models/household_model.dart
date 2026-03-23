@@ -10,6 +10,7 @@ class HouseholdModel extends Household {
     required super.createdAt,
     required super.ownerId,
     required super.members,
+    required super.inviteCode,
   });
 
   factory HouseholdModel.fromEntity(Household household) {
@@ -19,6 +20,7 @@ class HouseholdModel extends Household {
       createdAt: household.createdAt,
       ownerId: household.ownerId,
       members: household.members,
+      inviteCode: household.inviteCode,
     );
   }
 
@@ -40,6 +42,7 @@ class HouseholdModel extends Household {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       ownerId: data['ownerId'] as String? ?? '',
       members: members,
+      inviteCode: data['inviteCode'] as String? ?? '',
     );
   }
 
@@ -54,6 +57,7 @@ class HouseholdModel extends Household {
       'createdAt': Timestamp.fromDate(createdAt),
       'ownerId': ownerId,
       'members': membersMap,
+      'inviteCode': inviteCode,
     };
   }
 
@@ -64,6 +68,7 @@ class HouseholdModel extends Household {
       createdAt: createdAt,
       ownerId: ownerId,
       members: members,
+      inviteCode: inviteCode,
     );
   }
 }

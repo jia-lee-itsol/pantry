@@ -4,7 +4,28 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/design/color_schemes.dart';
 import '../../../../core/design/spacing.dart';
 
-/// 스플래시 페이지
+// ============================================
+// Splash Page
+// ============================================
+
+/// Splash screen page displayed during app initialization.
+///
+/// This page shows the app logo and a loading indicator while the app
+/// initializes. After a 2-second delay, it automatically navigates to
+/// the login page.
+///
+/// Responsibilities:
+/// - Display app logo and branding
+/// - Show loading indicator
+/// - Navigate to login page after delay
+///
+/// Example usage in router:
+/// ```dart
+/// GoRoute(
+///   path: '/splash',
+///   builder: (context, state) => const SplashPage(),
+/// ),
+/// ```
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -19,10 +40,13 @@ class _SplashPageState extends State<SplashPage> {
     _navigateToLogin();
   }
 
+  /// Navigates to the login page after a 2-second delay.
+  ///
+  /// Checks if the widget is still mounted before navigation to avoid
+  /// errors when navigating after the widget is disposed.
   Future<void> _navigateToLogin() async {
-    // 2초 대기
     await Future.delayed(const Duration(seconds: 2));
-    
+
     if (mounted) {
       context.go('/login');
     }
@@ -36,7 +60,7 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 앱 로고/아이콘
+            // App logo/icon
             Image.asset(
               'assets/icons/logo.png',
               width: 200,
@@ -45,7 +69,7 @@ class _SplashPageState extends State<SplashPage> {
             ),
             const SizedBox(height: AppSpacing.xl),
 
-            // 로딩 인디케이터
+            // Loading indicator
             CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(AppColorSchemes.light.primary),
             ),

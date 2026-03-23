@@ -3,16 +3,35 @@ import 'package:flutter/material.dart';
 import '../spacing.dart';
 import '../color_schemes.dart';
 
-/// 앱의 공통 스캐폴드 위젯
-/// 
-/// 일관된 레이아웃과 접근성을 제공합니다.
-/// 모든 페이지에서 사용하는 기본 스캐폴드 구조를 제공합니다.
+/// App Scaffold Widget
+///
+/// A common scaffold widget that provides consistent layout and accessibility
+/// throughout the application. All pages should use this as their base structure
+/// to ensure UI consistency.
+///
+/// Features:
+/// - Consistent padding and spacing
+/// - Automatic back button handling
+/// - Accessibility semantics
+/// - Theme-aware styling
+/// - Safe area handling
 class AppScaffold extends StatelessWidget {
+  /// Optional title widget for the AppBar
   final Widget? title;
+
+  /// Main body content
   final Widget body;
+
+  /// Optional leading widget for AppBar (defaults to back button)
   final Widget? leading;
+
+  /// Optional action widgets for AppBar
   final List<Widget>? actions;
+
+  /// Optional floating action button
   final Widget? floatingActionButton;
+
+  /// Whether to extend body behind AppBar
   final bool extendBodyBehindAppBar;
 
   const AppScaffold({
@@ -28,7 +47,7 @@ class AppScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '앱 메인 스캐폴드',
+      label: 'App main scaffold',
       child: Scaffold(
         appBar: title != null
             ? AppBar(
@@ -36,7 +55,7 @@ class AppScaffold extends StatelessWidget {
                     leading ??
                     (Navigator.canPop(context)
                         ? Semantics(
-                            label: '뒤로가기',
+                            label: 'Back',
                             button: true,
                             child: IconButton(
                               icon: const Icon(Icons.arrow_back),
@@ -61,7 +80,7 @@ class AppScaffold extends StatelessWidget {
         ),
         floatingActionButton: floatingActionButton != null
             ? Semantics(
-                label: '추가하기',
+                label: 'Add',
                 button: true,
                 child: floatingActionButton!,
               )

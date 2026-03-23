@@ -17,6 +17,27 @@ import '../../../stock/presentation/providers/stock_provider.dart';
 import '../../../fridge/domain/entities/fridge_item.dart';
 import '../../../stock/domain/entities/stock_item.dart';
 
+// ============================================
+// Shopping List Page
+// ============================================
+
+/// Interactive shopping list page with smart auto-completion.
+///
+/// This page provides a comprehensive shopping list interface that:
+/// - Displays items categorized by 'fridge' or 'stock'
+/// - Automatically checks available stock and marks items complete if sufficient stock exists
+/// - Allows adding, editing, and deleting shopping list items
+/// - Shows stock information for each item with low-stock warnings
+/// - Provides category filtering with segment controls
+///
+/// Key features:
+/// - Smart stock checking: Compares needed quantity with available stock
+/// - Auto-completion: Marks items complete if sufficient stock is available
+/// - Category-based organization: Separate lists for fridge and stock items
+/// - Real-time stock status: Shows current stock levels and target quantities
+///
+/// The page uses Riverpod for state management and integrates with both
+/// fridge and stock providers to check inventory levels.
 class ListPage extends ConsumerStatefulWidget {
   const ListPage({super.key});
 
@@ -25,8 +46,27 @@ class ListPage extends ConsumerStatefulWidget {
 }
 
 class _ListPageState extends ConsumerState<ListPage> {
+  /// Currently selected category filter ('fridge' or 'stock')
   String _selectedCategory = 'fridge';
 
+  // ============================================
+  // Stock Checking and Auto-Completion Logic
+  // ============================================
+
+  /// Checks available stock and automatically marks item complete if sufficient stock exists.
+  ///
+  /// This method:
+  /// 1. Parses the item name to extract required quantity
+  /// 2. Searches both fridge and stock inventories for matching items
+  /// 3. Sums up total available stock
+  /// 4. Marks the item complete if stock meets or exceeds needed quantity
+  ///
+  /// Parameters:
+  /// - [ref]: Widget ref for accessing providers
+  /// - [item]: The shopping list item to check
+  /// - [category]: The category of the item ('fridge' or 'stock')
+  ///
+  /// Returns a potentially updated [ShoppingListItem] with auto-completed status.
   Future<ShoppingListItem> _checkStockAndAutoComplete(
     WidgetRef ref,
     ShoppingListItem item,
@@ -59,6 +99,17 @@ class _ListPageState extends ConsumerState<ListPage> {
     return item.copyWith(isCompleted: hasEnoughStock);
   }
 
+  /// Finds all fridge items that match the given shopping list item name.
+  ///
+  /// Uses fuzzy matching to find items where:
+  /// - Names are exactly equal (case-insensitive)
+  /// - Either name contains the other
+  ///
+  /// Parameters:
+  /// - [itemName]: The shopping list item name to match
+  /// - [fridgeItems]: List of available fridge items
+  ///
+  /// Returns a list of matching [FridgeItem]s.
   List<FridgeItem> _findAllMatchingFridgeItems(
       String itemName, List<FridgeItem> fridgeItems) {
     final parsed = parseNameAndQuantity(itemName);
@@ -76,6 +127,17 @@ class _ListPageState extends ConsumerState<ListPage> {
     return matchingItems;
   }
 
+  /// Finds all stock items that match the given shopping list item name.
+  ///
+  /// Uses fuzzy matching to find items where:
+  /// - Names are exactly equal (case-insensitive)
+  /// - Either name contains the other
+  ///
+  /// Parameters:
+  /// - [itemName]: The shopping list item name to match
+  /// - [stockItems]: List of available stock items
+  ///
+  /// Returns a list of matching [StockItem]s.
   List<StockItem> _findAllMatchingStockItems(
       String itemName, List<StockItem> stockItems) {
     final parsed = parseNameAndQuantity(itemName);
@@ -93,8 +155,24 @@ class _ListPageState extends ConsumerState<ListPage> {
     return matchingItems;
   }
 
+  // ============================================
+  // UI Building Methods
+  // ============================================
+
+  /// Builds the shopping list page widget.
+  ///
+  /// This method:
+  /// - Handles category query parameters from routing
+  /// - Watches the shopping list provider for data
+  /// - Builds the UI with category selector and shopping list
+  ///
+  /// Parameters:
+  /// - [context]: The build context
+  ///
+  /// Returns the complete shopping list page widget tree.
   @override
   Widget build(BuildContext context) {
+    // Handle category from URL query parameters
     final category =
         GoRouterState.of(context).uri.queryParameters['category'];
     if (category != null && category != _selectedCategory) {

@@ -2,20 +2,34 @@
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:flutter/foundation.dart';
 
-/// ML Kit을 사용한 바코드 스캔 데이터 소스
+/// Data source for barcode scanning using Google ML Kit.
+///
+/// This class provides barcode detection and decoding functionality
+/// using the ML Kit Barcode Scanning API. It supports various barcode
+/// formats including EAN-13, EAN-8, UPC-A, UPC-E, and more.
 class BarcodeMLKitDataSource {
   final BarcodeScanner _barcodeScanner;
 
+  /// Creates a [BarcodeMLKitDataSource] with ML Kit barcode scanner.
+  ///
+  /// Initializes the scanner to recognize all supported barcode formats.
   BarcodeMLKitDataSource()
       : _barcodeScanner = BarcodeScanner(formats: [
           BarcodeFormat.all,
         ]);
 
-  /// 이미지에서 바코드를 스캔합니다.
+  /// Scans and extracts barcode values from an image.
   ///
-  /// [imagePath]: 스캔할 이미지 경로
+  /// Uses ML Kit to process the image and detect barcodes. If multiple
+  /// barcodes are found, returns the first one detected.
   ///
-  /// 반환: 바코드 값 (EAN-13, EAN-8, UPC-A, UPC-E 등)
+  /// Parameters:
+  ///   [imagePath] - The file path of the image to scan
+  ///
+  /// Returns the barcode value as a string (e.g., "1234567890123" for EAN-13),
+  /// or null if no barcode is detected or the value is empty.
+  ///
+  /// Throws an exception if image processing fails.
   Future<String?> scanBarcode(String imagePath) async {
     try {
       final inputImage = InputImage.fromFilePath(imagePath);
@@ -23,28 +37,30 @@ class BarcodeMLKitDataSource {
           await _barcodeScanner.processImage(inputImage);
 
       if (barcodes.isEmpty) {
-        debugPrint('바코드를 찾을 수 없습니다.');
+        debugPrint('No barcode found in the image.');
         return null;
       }
 
-      // 첫 번째 바코드 반환
+      // Return the first detected barcode
       final barcode = barcodes.first;
       final barcodeValue = barcode.displayValue ?? barcode.rawValue;
 
       if (barcodeValue == null || barcodeValue.isEmpty) {
-        debugPrint('바코드 값이 비어있습니다.');
+        debugPrint('Barcode value is empty.');
         return null;
       }
 
-      debugPrint('바코드 스캔 성공: $barcodeValue');
+      debugPrint('Barcode scan successful: $barcodeValue');
       return barcodeValue;
     } catch (e) {
-      debugPrint('바코드 스캔 실패: $e');
+      debugPrint('Barcode scan failed: $e');
       rethrow;
     }
   }
 
-  /// 리소스 정리
+  /// Releases resources used by the barcode scanner.
+  ///
+  /// Should be called when the scanner is no longer needed to free up memory.
   void dispose() {
     _barcodeScanner.close();
   }

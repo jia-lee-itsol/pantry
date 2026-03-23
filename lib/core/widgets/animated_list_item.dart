@@ -1,11 +1,36 @@
 import 'package:flutter/material.dart';
 
-/// 리스트 아이템에 슬라이드 애니메이션을 적용하는 위젯
-/// 
-/// 리스트가 업데이트될 때 각 아이템이 부드럽게 나타나도록 합니다.
+/// Animated List Item Widget
+///
+/// A widget that applies slide and fade animations to list items.
+/// Creates a smooth, staggered entrance effect when lists are updated,
+/// enhancing the user experience with polished animations.
+///
+/// Features:
+/// - Slide-in animation from bottom
+/// - Fade-in animation
+/// - Staggered effect based on item index
+/// - Customizable animation duration
+///
+/// Usage:
+/// ```dart
+/// ListView.builder(
+///   itemBuilder: (context, index) {
+///     return AnimatedListItem(
+///       index: index,
+///       child: ListTile(title: Text('Item $index')),
+///     );
+///   },
+/// );
+/// ```
 class AnimatedListItem extends StatefulWidget {
+  /// The child widget to animate
   final Widget child;
+
+  /// The index of the item (used for stagger delay)
   final int index;
+
+  /// Animation duration (default: 300ms)
   final Duration duration;
 
   const AnimatedListItem({
@@ -53,7 +78,7 @@ class _AnimatedListItemState extends State<AnimatedListItem>
       ),
     );
 
-    // 인덱스에 따라 지연 시작 (스태거 효과)
+    // Delayed start based on index (stagger effect)
     Future.delayed(
       Duration(milliseconds: widget.index * 50),
       () {

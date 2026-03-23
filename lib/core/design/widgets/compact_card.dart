@@ -3,11 +3,31 @@ import 'package:go_router/go_router.dart';
 
 import '../spacing.dart';
 
+/// Compact Card Widget
+///
+/// A reusable compact card widget for displaying features or quick actions.
+/// Similar to SectionCard but with a vertical layout suitable for grid displays.
+///
+/// Features:
+/// - Icon with theme-aware background
+/// - Title and optional subtitle
+/// - Navigation support (route or onTap callback)
+/// - Expandable width (uses Expanded widget)
+/// - Text overflow handling
 class CompactCard extends StatelessWidget {
+  /// Card title text
   final String title;
+
+  /// Optional subtitle text (max 2 lines with ellipsis)
   final String? subtitle;
+
+  /// Icon to display
   final IconData icon;
+
+  /// Optional tap callback (used if no route is provided)
   final VoidCallback? onTap;
+
+  /// Optional route for navigation
   final String? route;
 
   const CompactCard({

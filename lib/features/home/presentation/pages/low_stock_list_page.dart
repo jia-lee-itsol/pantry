@@ -10,10 +10,43 @@ import '../../presentation/providers/shopping_list_provider.dart';
 import '../../domain/entities/shopping_list_item.dart';
 import '../widgets/low_stock_item_card.dart';
 
-/// 재고 부족 상품 리스트 페이지
+// ============================================
+// Low Stock List Page
+// ============================================
+
+/// Full list page displaying all stockpile items with low inventory.
+///
+/// This page shows a complete, scrollable list of stockpile items
+/// that have fallen below their target quantity. It includes:
+/// - All stock items where current quantity < target quantity
+/// - Default target of 5 if not specified
+/// - "Add to Shopping List" button for each item
+/// - Smart detection of already-added items
+/// - Pull-to-refresh functionality
+///
+/// Features:
+/// - Empty state when all items are adequately stocked
+/// - Loading and error states with retry button
+/// - One-tap addition to shopping list with quantity
+/// - Navigation to shopping list after adding items
+/// - Prevents duplicate additions to shopping list
+///
+/// Key responsibilities:
+/// - Display low stock items with current/target quantities
+/// - Facilitate quick addition to shopping list
+/// - Calculate needed quantities automatically
+/// - Provide feedback via snackbars
 class LowStockListPage extends ConsumerWidget {
   const LowStockListPage({super.key});
 
+  /// Builds the low stock list page widget.
+  ///
+  /// Filters stock items to show only those below target quantity
+  /// and provides "Add to Shopping List" functionality.
+  ///
+  /// Parameters:
+  /// - [context]: The build context
+  /// - [ref]: Widget ref for accessing providers
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stockItemsAsync = ref.watch(stockItemsProvider);
@@ -250,7 +283,24 @@ class LowStockListPage extends ConsumerWidget {
     );
   }
 
-  /// 구매 리스트에 아이템 추가
+  // ============================================
+  // Helper Methods
+  // ============================================
+
+  /// Adds a stock item to the shopping list with calculated quantity.
+  ///
+  /// This method:
+  /// 1. Calculates the needed quantity (target - current)
+  /// 2. Creates a shopping list item with quantity in the name
+  /// 3. Adds it to the shopping list via the provider
+  ///
+  /// The item name includes quantity if needed > 1:
+  /// - "Item Name (数量: X)" for quantities > 1
+  /// - "Item Name" for quantity = 1
+  ///
+  /// Parameters:
+  /// - [ref]: Widget ref for accessing providers
+  /// - [item]: The stock item to add to the shopping list
   Future<void> _addToShoppingList(
     WidgetRef ref,
     StockItem item,

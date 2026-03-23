@@ -3,11 +3,31 @@ import 'package:go_router/go_router.dart';
 
 import '../spacing.dart';
 
+/// Section Card Widget
+///
+/// A reusable card widget for displaying navigation sections or features.
+/// Provides a consistent design for section/feature cards throughout the app.
+///
+/// Features:
+/// - Icon with theme-aware background
+/// - Title and optional subtitle
+/// - Navigation support (route or onTap callback)
+/// - Chevron indicator for navigation
+/// - Ripple effect on tap
 class SectionCard extends StatelessWidget {
+  /// Card title text
   final String title;
+
+  /// Optional subtitle text
   final String? subtitle;
+
+  /// Icon to display
   final IconData icon;
+
+  /// Optional tap callback (used if no route is provided)
   final VoidCallback? onTap;
+
+  /// Optional route for navigation
   final String? route;
 
   const SectionCard({

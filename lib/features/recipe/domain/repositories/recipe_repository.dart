@@ -2,15 +2,24 @@ import '../entities/recipe.dart';
 import '../../../fridge/domain/entities/fridge_item.dart';
 import '../../../stock/domain/entities/stock_item.dart';
 
-/// 레시피 추천을 위한 리포지토리 인터페이스
+/// Repository interface for recipe recommendation operations.
+///
+/// This repository defines the contract for generating recipe recommendations
+/// based on available inventory items from the fridge and stock.
 abstract class RecipeRepository {
-  /// 현재 재고(냉장고 + 재고)를 기반으로 레시피를 추천합니다.
+  /// Generates recipe recommendations based on current inventory.
   ///
-  /// [fridgeItems]: 냉장고 재고 목록
-  /// [stockItems]: 재고 목록
-  /// [count]: 추천받을 레시피 개수 (기본값: 3)
+  /// Analyzes the available fridge and stock items to suggest recipes
+  /// that can be prepared with the available ingredients. Uses AI to
+  /// generate creative and practical recipe suggestions.
   ///
-  /// 반환: 추천 레시피 목록
+  /// Parameters:
+  ///   [fridgeItems] - List of items currently in the fridge
+  ///   [stockItems] - List of items in stock/pantry
+  ///   [count] - Number of recipe recommendations to generate (default: 3)
+  ///
+  /// Returns a list of [Recipe] objects recommended based on available items.
+  /// Throws an exception if recipe generation fails.
   Future<List<Recipe>> getRecipeRecommendations({
     required List<FridgeItem> fridgeItems,
     required List<StockItem> stockItems,

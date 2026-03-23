@@ -3,14 +3,45 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/spacing.dart';
 
+// ============================================
+// Low Stock Alert Card Widget
+// ============================================
+
+/// Alert card widget for displaying low stockpile items.
+///
+/// This widget shows an orange alert when there are stockpile items
+/// that have fallen below their target quantity. It includes:
+/// - Inventory icon in orange
+/// - Count of low stock items
+/// - Tap functionality to navigate to the detailed low stock page
+///
+/// The card automatically hides when count is 0, showing only
+/// when user action is needed to restock items.
+///
+/// Visual design:
+/// - Orange color scheme to indicate warning (not critical)
+/// - Rounded corners with border
+/// - Tappable with visual feedback
 class LowStockAlertCard extends StatelessWidget {
+  /// Number of items with low stock
   final int count;
 
+  /// Creates a [LowStockAlertCard].
+  ///
+  /// Parameters:
+  /// - [count]: Number of items below target quantity (required)
   const LowStockAlertCard({
     super.key,
     required this.count,
   });
 
+  /// Builds the low stock alert card widget.
+  ///
+  /// Returns an empty widget if count is 0, otherwise displays
+  /// an orange alert card with stock information and navigation.
+  ///
+  /// Parameters:
+  /// - [context]: The build context
   @override
   Widget build(BuildContext context) {
     if (count == 0) {

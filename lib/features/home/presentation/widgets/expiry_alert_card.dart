@@ -3,14 +3,46 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/design/spacing.dart';
 
+// ============================================
+// Expiry Alert Card Widget
+// ============================================
+
+/// Alert card widget for displaying items expiring today.
+///
+/// This widget shows a prominent red alert when there are items
+/// in the refrigerator that are expiring on the current date.
+/// It includes:
+/// - Warning icon in red
+/// - Count of expiring items
+/// - Action button to navigate to the fridge page
+///
+/// The card automatically hides when count is 0, showing only
+/// when user action is needed.
+///
+/// Visual design:
+/// - Red color scheme to indicate urgency
+/// - Rounded corners with border
+/// - Prominent warning icon
 class ExpiryAlertCard extends StatelessWidget {
+  /// Number of items expiring today
   final int count;
 
+  /// Creates an [ExpiryAlertCard].
+  ///
+  /// Parameters:
+  /// - [count]: Number of items expiring today (required)
   const ExpiryAlertCard({
     super.key,
     required this.count,
   });
 
+  /// Builds the expiry alert card widget.
+  ///
+  /// Returns an empty widget if count is 0, otherwise displays
+  /// a red alert card with expiry information and action button.
+  ///
+  /// Parameters:
+  /// - [context]: The build context
   @override
   Widget build(BuildContext context) {
     if (count == 0) {

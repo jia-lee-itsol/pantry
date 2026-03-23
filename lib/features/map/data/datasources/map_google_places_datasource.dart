@@ -4,11 +4,27 @@ import '../models/shelter_model.dart';
 import 'map_remote_datasource.dart';
 import '../../../../core/config/env_config.dart';
 
+/// Data source for finding shelters using Google Places API.
+///
+/// This class uses Google Places API to search for emergency shelters
+/// (evacuation centers) near a given location. It searches using Japanese
+/// keywords and returns shelter information with coordinates.
 class MapGooglePlacesDataSource implements MapRemoteDataSource {
   static const String _baseUrl = 'https://maps.googleapis.com/maps/api/place';
   static const String _textSearchEndpoint = '/textsearch/json';
-  static const int _radius = 5000; // 5km 반경
+  static const int _radius = 5000; // Search radius: 5km
 
+  /// Searches for nearby emergency shelters using Google Places API.
+  ///
+  /// Performs a text search for "避難所" (evacuation shelter in Japanese)
+  /// within a 5km radius of the specified coordinates.
+  ///
+  /// Parameters:
+  ///   [latitude] - The latitude coordinate of the search center
+  ///   [longitude] - The longitude coordinate of the search center
+  ///
+  /// Returns a list of [ShelterModel] objects found near the location.
+  /// Throws an exception if the API key is missing or the request fails.
   @override
   Future<List<ShelterModel>> getNearbyShelters(
     double latitude,
@@ -17,10 +33,10 @@ class MapGooglePlacesDataSource implements MapRemoteDataSource {
     try {
       final apiKey = EnvConfig.googlePlacesApiKey;
       if (apiKey.isEmpty) {
-        throw Exception('Google Places API Key가 설정되지 않았습니다.');
+        throw Exception('Google Places API Key is not configured.');
       }
 
-      // 일본어로 "避難所" (피난소) 검색
+      // Search for "避難所" (evacuation shelter in Japanese)
       final query = '避難所';
       final url = Uri.parse(
         '$_baseUrl$_textSearchEndpoint?query=$query&location=$latitude,$longitude&radius=$_radius&language=ja&key=$apiKey',
@@ -44,20 +60,26 @@ class MapGooglePlacesDataSource implements MapRemoteDataSource {
             );
           }).toList();
         } else {
-          throw Exception('Places API 오류: ${data['status']}');
+          throw Exception('Places API error: ${data['status']}');
         }
       } else {
-        throw Exception('HTTP 오류: ${response.statusCode}');
+        throw Exception('HTTP error: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('피난소 검색 실패: $e');
+      throw Exception('Shelter search failed: $e');
     }
   }
 
+  /// Retrieves all shelters (not location-specific).
+  ///
+  /// Currently returns an empty list as all-shelter search requires
+  /// a location context. Can be implemented differently if needed.
+  ///
+  /// Returns an empty list.
   @override
   Future<List<ShelterModel>> getAllShelters() async {
-    // 전체 피난소 검색은 현재 위치가 필요하므로 빈 리스트 반환
-    // 필요시 다른 방법으로 구현 가능
+    // All-shelter search requires current location, so return empty list
+    // Can be implemented using alternative methods if needed
     return [];
   }
 }

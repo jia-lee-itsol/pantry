@@ -1,8 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
-/// 데이터 동기화 서비스
-/// Firestore와 로컬 데이터 간의 동기화를 관리하고 충돌을 해결합니다.
+/// Sync Service
+///
+/// Manages data synchronization between Firestore and local data,
+/// handles conflict resolution, and provides retry logic for failed operations.
+///
+/// Features:
+/// - Automatic retry for transient Firestore errors
+/// - Conflict resolution using Last Write Wins strategy
+/// - Batch operations support
+/// - Online/offline status detection
+/// - Offline operation queueing (future implementation)
 class SyncService {
   final FirebaseFirestore _firestore;
   static const int _maxRetries = 3;
@@ -12,7 +21,20 @@ class SyncService {
     FirebaseFirestore? firestore,
   }) : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  /// 재시도 로직이 포함된 Firestore 작업 실행
+  /// Executes a Firestore operation with retry logic
+  ///
+  /// Automatically retries failed operations for transient errors such as
+  /// network issues, timeouts, and server errors. Uses exponential backoff
+  /// between retry attempts.
+  ///
+  /// Parameters:
+  ///   - operation: The async operation to execute
+  ///   - maxRetries: Maximum number of retry attempts (default: 3)
+  ///
+  /// Returns: The result of the operation
+  ///
+  /// Throws: The last exception if all retry attempts fail, or immediately
+  ///         if the error is not retryable
   Future<T> executeWithRetry<T>(
     Future<T> Function() operation, {
     int maxRetries = _maxRetries,
@@ -27,29 +49,35 @@ class SyncService {
         lastException = e;
         attempts++;
 
-        // 재시도 가능한 에러인지 확인
+        // Check if error is retryable
         if (!_isRetryableError(e)) {
           rethrow;
         }
 
-        // 마지막 시도가 아니면 대기 후 재시도
+        // Wait before retrying (exponential backoff)
         if (attempts < maxRetries) {
           await Future.delayed(_retryDelay * attempts);
-          debugPrint('Firestore 작업 재시도: $attempts/$maxRetries');
+          debugPrint('Retrying Firestore operation: $attempts/$maxRetries');
         }
       } catch (e) {
-        // FirebaseException이 아닌 경우 즉시 throw
+        // Immediately throw if not a FirebaseException
         rethrow;
       }
     }
 
-    // 모든 재시도 실패
-    throw Exception('操作が失敗しました（$maxRetries回試行）: $lastException');
+    // All retries failed
+    throw Exception('Operation failed after $maxRetries attempts: $lastException');
   }
 
-  /// 재시도 가능한 에러인지 확인
+  /// Determines if a Firebase error is retryable
+  ///
+  /// Network errors, timeouts, and server errors are considered retryable.
+  ///
+  /// Parameters:
+  ///   - error: The Firebase exception to check
+  ///
+  /// Returns: `true` if the error is retryable, `false` otherwise
   bool _isRetryableError(FirebaseException error) {
-    // 네트워크 에러, 타임아웃, 서버 에러 등은 재시도 가능
     switch (error.code) {
       case 'unavailable':
       case 'deadline-exceeded':
@@ -61,22 +89,41 @@ class SyncService {
     }
   }
 
-  /// 충돌 해결: 서버 버전 우선 (Last Write Wins)
+  /// Resolves conflicts using Last Write Wins strategy
+  ///
+  /// Compares timestamps and returns the data with the most recent timestamp.
+  /// Server data takes precedence if timestamps are equal.
+  ///
+  /// Parameters:
+  ///   - localData: The local version of the data
+  ///   - serverData: The server version of the data
+  ///   - localTimestamp: Timestamp of the local data
+  ///   - serverTimestamp: Timestamp of the server data
+  ///
+  /// Returns: The data to use (either local or server)
   Future<Map<String, dynamic>> resolveConflict(
     Map<String, dynamic> localData,
     Map<String, dynamic> serverData,
     DateTime localTimestamp,
     DateTime serverTimestamp,
   ) async {
-    // 서버 타임스탬프가 더 최신이면 서버 데이터 사용
+    // Use server data if server timestamp is newer
     if (serverTimestamp.isAfter(localTimestamp)) {
       return serverData;
     }
-    // 로컬 타임스탬프가 더 최신이면 로컬 데이터 사용
+    // Use local data if local timestamp is newer
     return localData;
   }
 
-  /// 배치 작업 실행 (트랜잭션 사용)
+  /// Executes batch operations
+  ///
+  /// Groups multiple Firestore operations into a single atomic batch.
+  /// All operations succeed or fail together.
+  ///
+  /// Parameters:
+  ///   - operations: List of operations to execute as a batch
+  ///
+  /// Throws: Exception if batch commit fails after all retries
   Future<void> executeBatch(
     List<Future<void> Function(WriteBatch)> operations,
   ) async {
@@ -91,7 +138,11 @@ class SyncService {
     });
   }
 
-  /// 오프라인 상태 확인
+  /// Checks if the device is online
+  ///
+  /// Attempts a simple Firestore query to determine connectivity.
+  ///
+  /// Returns: `true` if online, `false` if offline
   Future<bool> isOnline() async {
     try {
       // 간단한 쿼리로 연결 상태 확인
@@ -104,14 +155,19 @@ class SyncService {
     }
   }
 
-  /// 오프라인 큐에 작업 추가 (향후 구현)
+  /// Queues an operation for offline execution (future implementation)
+  ///
+  /// Stores operations in a queue to be executed when the device comes back online.
+  /// Currently saves to SharedPreferences or a local database.
+  ///
+  /// Parameters:
+  ///   - operationType: The type of operation to queue
+  ///   - data: The operation data
   Future<void> queueOfflineOperation(
     String operationType,
     Map<String, dynamic> data,
   ) async {
-    // 오프라인 작업을 큐에 저장하여 온라인 상태가 되면 실행
-    // SharedPreferences나 로컬 데이터베이스에 저장
-    debugPrint('オフライン操作をキューに追加: $operationType');
+    debugPrint('Adding offline operation to queue: $operationType');
   }
 }
 

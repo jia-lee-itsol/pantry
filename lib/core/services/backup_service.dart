@@ -11,6 +11,19 @@ import '../../features/stock/data/models/stock_item_model.dart';
 import '../../features/home/data/models/shopping_list_item_model.dart';
 import '../../features/settings/data/models/category_model.dart';
 
+/// Backup Service
+///
+/// Manages data backup and restoration to/from Firestore.
+/// This service backs up all user data including fridge items, stock items,
+/// shopping lists, and categories to Firestore, allowing users to restore
+/// their data on different devices or after reinstalling the app.
+///
+/// Features:
+/// - Complete data backup to Firestore
+/// - Versioned backup system
+/// - Per-user backup isolation
+/// - Backup metadata tracking
+/// - Full data restoration
 class BackupService {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -34,31 +47,51 @@ class BackupService {
         _shoppingListDataSource = shoppingListDataSource ?? ShoppingListLocalDataSource(),
         _categoryDataSource = categoryDataSource ?? CategoryLocalDataSource();
 
-  /// 현재 사용자 ID 가져오기
+  /// Gets the current user ID
+  ///
+  /// Returns: The current user's UID, or null if not authenticated
   String? _getCurrentUserId() {
     return _auth.currentUser?.uid;
   }
 
-  /// 사용자별 백업 컬렉션 경로 가져오기
+  /// Gets the user-specific backup collection
+  ///
+  /// Each user has their own backup subcollection under their user document.
+  ///
+  /// Parameters:
+  ///   - userId: The user's UID
+  ///
+  /// Returns: Reference to the user's backup collection
   CollectionReference _getUserBackupCollection(String userId) {
     return _firestore.collection('users').doc(userId).collection(_backupCollection);
   }
 
-  /// 모든 데이터를 Firestore에 백업
+  /// Backs up all data to Firestore
+  ///
+  /// Creates a complete backup of all user data including:
+  /// - Fridge items
+  /// - Stock items
+  /// - Shopping list items
+  /// - Custom categories
+  ///
+  /// The backup is stored in Firestore under the user's backup collection
+  /// with a timestamp-based ID. Backup metadata is also saved to SharedPreferences.
+  ///
+  /// Throws: Exception if the user is not authenticated or backup fails
   Future<void> backupAllData() async {
     final userId = _getCurrentUserId();
     if (userId == null) {
-      throw Exception('사용자가 로그인하지 않았습니다.');
+      throw Exception('User is not logged in.');
     }
 
     try {
-      // 모든 데이터 수집
+      // Collect all data
       final fridgeItems = await _fridgeDataSource.getFridgeItems();
       final stockItems = await _stockDataSource.getStockItems();
       final shoppingListItems = await _shoppingListDataSource.getItems();
       final categories = await _categoryDataSource.getCategories();
 
-      // 백업 데이터 구성
+      // Construct backup data
       final backupData = {
         'userId': userId,
         'fridgeItems': fridgeItems.map((item) => item.toJson()).toList(),
@@ -69,54 +102,64 @@ class BackupService {
         'version': '1.0.0',
       };
 
-      // Firestore에 백업 저장 (사용자별 서브컬렉션)
+      // Save backup to Firestore (user-specific subcollection)
       final backupId = DateTime.now().millisecondsSinceEpoch.toString();
       await _getUserBackupCollection(userId)
           .doc(backupId)
           .set(backupData);
 
-      // SharedPreferences에도 백업 메타데이터 저장
+      // Save backup metadata to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('last_backup_date', DateTime.now().toIso8601String());
     } catch (e) {
-      throw Exception('バックアップに失敗しました: $e');
+      throw Exception('Backup failed: $e');
     }
   }
 
-  /// Firestore에서 백업 데이터를 복원
+  /// Restores all data from Firestore
+  ///
+  /// Retrieves the most recent backup from Firestore and restores all data:
+  /// - Fridge items (existing items are deleted first)
+  /// - Stock items (existing items are deleted first)
+  /// - Shopping list items (replaces existing list)
+  /// - Custom categories (replaces existing categories)
+  ///
+  /// Restoration metadata is saved to SharedPreferences.
+  ///
+  /// Throws: Exception if the user is not authenticated, no backup exists, or restoration fails
   Future<void> restoreAllData() async {
     final userId = _getCurrentUserId();
     if (userId == null) {
-      throw Exception('사용자가 로그인하지 않았습니다.');
+      throw Exception('User is not logged in.');
     }
 
     try {
-      // Firestore에서 가장 최근 백업 데이터 가져오기
+      // Get the most recent backup from Firestore
       final backupSnapshot = await _getUserBackupCollection(userId)
           .orderBy('backupDate', descending: true)
           .limit(1)
           .get();
 
       if (backupSnapshot.docs.isEmpty) {
-        throw Exception('バックアップデータが見つかりません');
+        throw Exception('No backup data found');
       }
 
       final backupDoc = backupSnapshot.docs.first;
 
       if (!backupDoc.exists) {
-        throw Exception('バックアップデータが見つかりません');
+        throw Exception('No backup data found');
       }
 
       final backupData = backupDoc.data() as Map<String, dynamic>;
 
-      // 냉장고 아이템 복원
+      // Restore fridge items
       if (backupData['fridgeItems'] != null) {
         final fridgeItemsJson = backupData['fridgeItems'] as List<dynamic>;
         final fridgeItems = fridgeItemsJson
             .map((json) => FridgeItemModel.fromJson(json as Map<String, dynamic>))
             .toList();
 
-        // 기존 데이터 삭제 후 복원
+        // Delete existing data before restoring
         final existingItems = await _fridgeDataSource.getFridgeItems();
         for (final item in existingItems) {
           await _fridgeDataSource.deleteFridgeItem(item.id);
@@ -127,14 +170,14 @@ class BackupService {
         }
       }
 
-      // 재고 아이템 복원
+      // Restore stock items
       if (backupData['stockItems'] != null) {
         final stockItemsJson = backupData['stockItems'] as List<dynamic>;
         final stockItems = stockItemsJson
             .map((json) => StockItemModel.fromJson(json as Map<String, dynamic>))
             .toList();
 
-        // 기존 데이터 삭제 후 복원
+        // Delete existing data before restoring
         final existingItems = await _stockDataSource.getStockItems();
         for (final item in existingItems) {
           await _stockDataSource.deleteStockItem(item.id);
@@ -145,7 +188,7 @@ class BackupService {
         }
       }
 
-      // 쇼핑 리스트 복원
+      // Restore shopping list items
       if (backupData['shoppingListItems'] != null) {
         final shoppingListItemsJson = backupData['shoppingListItems'] as List<dynamic>;
         final shoppingListItems = shoppingListItemsJson
@@ -155,7 +198,7 @@ class BackupService {
         await _shoppingListDataSource.saveItems(shoppingListItems);
       }
 
-      // 카테고리 복원
+      // Restore categories
       if (backupData['categories'] != null) {
         final categoriesJson = backupData['categories'] as List<dynamic>;
         final categories = categoriesJson
@@ -165,15 +208,19 @@ class BackupService {
         await _categoryDataSource.saveCategories(categories);
       }
 
-      // 복원 메타데이터 저장
+      // Save restoration metadata
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('last_restore_date', DateTime.now().toIso8601String());
     } catch (e) {
-      throw Exception('復元に失敗しました: $e');
+      throw Exception('Restoration failed: $e');
     }
   }
 
-  /// 마지막 백업 날짜 가져오기
+  /// Gets the last backup date
+  ///
+  /// Retrieves the timestamp of the most recent backup from SharedPreferences.
+  ///
+  /// Returns: The last backup date, or null if no backup has been made
   Future<DateTime?> getLastBackupDate() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -187,7 +234,12 @@ class BackupService {
     }
   }
 
-  /// 백업 데이터 존재 여부 확인
+  /// Checks if backup data exists
+  ///
+  /// Queries Firestore to determine if at least one backup exists
+  /// for the current user.
+  ///
+  /// Returns: `true` if backup data exists, `false` otherwise
   Future<bool> hasBackupData() async {
     final userId = _getCurrentUserId();
     if (userId == null) {

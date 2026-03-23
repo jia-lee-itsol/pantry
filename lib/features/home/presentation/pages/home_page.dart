@@ -19,14 +19,50 @@ import '../widgets/household_request_alert.dart';
 import '../widgets/low_fridge_stock_alert.dart';
 import '../widgets/near_expiry_section.dart';
 
+// ============================================
+// Home Page - Main Dashboard
+// ============================================
+
+/// Main dashboard page of the pantry management application.
+///
+/// This page serves as the central hub, displaying:
+/// - Alerts for expiring items (items expiring today)
+/// - Low stock alerts for stockpile items
+/// - Low fridge stock alerts for refrigerator items
+/// - Household requests from family members
+/// - Summary cards showing counts of near-expiry items and total stock items
+/// - Near expiry section with actionable items
+/// - Navigation to various features (receipt scan, recipes, analytics)
+///
+/// The page uses Riverpod for state management and pulls data from
+/// both fridge and stock providers to display comprehensive information.
+///
+/// Key responsibilities:
+/// - Display real-time alerts and notifications
+/// - Provide quick access to critical information
+/// - Navigate to detailed feature pages
+/// - Trigger automatic migrations and notification scheduling
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
+  /// Builds the home page widget.
+  ///
+  /// This method:
+  /// - Watches fridge and stock item providers for data
+  /// - Triggers automatic migration and notification scheduling
+  /// - Builds the main dashboard UI with alerts and summary cards
+  ///
+  /// Parameters:
+  /// - [context]: The build context
+  /// - [ref]: The widget ref for accessing providers
+  ///
+  /// Returns the complete home page widget tree.
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fridgeItemsAsync = ref.watch(fridgeItemsProvider);
     final stockItemsAsync = ref.watch(stockItemsProvider);
 
+    // Initialize auto-migration and notification scheduling
     ref.watch(autoMigrationProvider);
     ref.watch(notificationSchedulingProvider);
 
@@ -102,6 +138,20 @@ class HomePage extends ConsumerWidget {
     );
   }
 
+  // ============================================
+  // Alert Building Methods
+  // ============================================
+
+  /// Builds the expiry alert card showing items expiring today.
+  ///
+  /// This widget checks for items that are expiring on the current date
+  /// and displays an alert if any are found.
+  ///
+  /// Parameters:
+  /// - [fridgeItemsAsync]: Async value containing fridge items
+  /// - [ref]: Widget ref for accessing use case providers
+  ///
+  /// Returns an [ExpiryAlertCard] or empty widget based on item status.
   Widget _buildExpiryAlert(AsyncValue<List<FridgeItem>> fridgeItemsAsync, WidgetRef ref) {
     return fridgeItemsAsync.when(
       data: (items) {
@@ -116,6 +166,16 @@ class HomePage extends ConsumerWidget {
     );
   }
 
+  /// Builds the low stock alert card for stockpile items.
+  ///
+  /// This widget checks for stock items that have fallen below their
+  /// target quantity and displays an alert with the count.
+  ///
+  /// Parameters:
+  /// - [stockItemsAsync]: Async value containing stock items
+  /// - [ref]: Widget ref for accessing use case providers
+  ///
+  /// Returns a [LowStockAlertCard] or empty widget based on stock status.
   Widget _buildLowStockAlert(AsyncValue<List<StockItem>> stockItemsAsync, WidgetRef ref) {
     return stockItemsAsync.when(
       data: (items) {
@@ -132,6 +192,16 @@ class HomePage extends ConsumerWidget {
     );
   }
 
+  /// Builds the low fridge stock alert for refrigerator items.
+  ///
+  /// This widget checks for fridge items that have fallen below their
+  /// target quantity and displays an alert with the low stock items.
+  ///
+  /// Parameters:
+  /// - [fridgeItemsAsync]: Async value containing fridge items
+  /// - [ref]: Widget ref for accessing use case providers
+  ///
+  /// Returns a [LowFridgeStockAlert] or empty widget based on stock status.
   Widget _buildLowFridgeStockAlert(AsyncValue<List<FridgeItem>> fridgeItemsAsync, WidgetRef ref) {
     return fridgeItemsAsync.when(
       data: (items) {
@@ -148,6 +218,22 @@ class HomePage extends ConsumerWidget {
     );
   }
 
+  // ============================================
+  // Summary Cards Builder
+  // ============================================
+
+  /// Builds the summary cards displaying key statistics.
+  ///
+  /// This widget creates two summary cards:
+  /// 1. Near expiry items count (items expiring within 7 days)
+  /// 2. Total stockpile items count
+  ///
+  /// Parameters:
+  /// - [fridgeItemsAsync]: Async value containing fridge items
+  /// - [stockItemsAsync]: Async value containing stock items
+  /// - [ref]: Widget ref for accessing use case providers
+  ///
+  /// Returns a Row containing the summary cards.
   Widget _buildSummaryCards(
     AsyncValue<List<FridgeItem>> fridgeItemsAsync,
     AsyncValue<List<StockItem>> stockItemsAsync,

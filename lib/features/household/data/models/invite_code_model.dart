@@ -10,6 +10,7 @@ class InviteCodeModel extends InviteCode {
     required super.expiresAt,
     required super.createdBy,
     super.used,
+    super.isPermanent,
   });
 
   factory InviteCodeModel.fromEntity(InviteCode inviteCode) {
@@ -21,6 +22,7 @@ class InviteCodeModel extends InviteCode {
       expiresAt: inviteCode.expiresAt,
       createdBy: inviteCode.createdBy,
       used: inviteCode.used,
+      isPermanent: inviteCode.isPermanent,
     );
   }
 
@@ -34,6 +36,26 @@ class InviteCodeModel extends InviteCode {
       expiresAt: (data['expiresAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdBy: data['createdBy'] as String? ?? '',
       used: data['used'] as bool? ?? false,
+      isPermanent: data['isPermanent'] as bool? ?? false,
+    );
+  }
+
+  /// Creates a permanent invite code model from household data
+  factory InviteCodeModel.permanent({
+    required String code,
+    required String householdId,
+    required String ownerId,
+    required DateTime createdAt,
+  }) {
+    return InviteCodeModel(
+      id: 'permanent_$householdId',
+      code: code,
+      householdId: householdId,
+      createdAt: createdAt,
+      expiresAt: DateTime(2100, 1, 1), // Far future date
+      createdBy: ownerId,
+      used: false,
+      isPermanent: true,
     );
   }
 
@@ -44,6 +66,7 @@ class InviteCodeModel extends InviteCode {
       'expiresAt': Timestamp.fromDate(expiresAt),
       'createdBy': createdBy,
       'used': used,
+      'isPermanent': isPermanent,
     };
   }
 
@@ -56,6 +79,7 @@ class InviteCodeModel extends InviteCode {
       expiresAt: expiresAt,
       createdBy: createdBy,
       used: used,
+      isPermanent: isPermanent,
     );
   }
 }

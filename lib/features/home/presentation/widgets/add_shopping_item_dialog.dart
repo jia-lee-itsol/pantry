@@ -4,9 +4,35 @@ import '../../../../core/design/spacing.dart';
 import '../../../../core/design/color_schemes.dart';
 import '../../domain/entities/shopping_list_item.dart';
 
-class AddShoppingItemDialog extends StatefulWidget {
-  final String category; // 'fridge' 또는 'stock'
+// ============================================
+// Add Shopping Item Dialog
+// ============================================
 
+/// Dialog for adding a new item to the shopping list.
+///
+/// This dialog provides a form with the following fields:
+/// - Item name (required)
+/// - Quantity (required, defaults to 1)
+/// - Estimated price (optional)
+///
+/// Features:
+/// - Input validation for all fields
+/// - Automatic quantity formatting in item name
+/// - Cancel and Save buttons
+/// - Auto-focus on name field
+///
+/// The quantity is stored in the item name using the format:
+/// "Item Name (数量: X)" for quantities greater than 1.
+///
+/// Returns a [ShoppingListItem] when saved, or null when cancelled.
+class AddShoppingItemDialog extends StatefulWidget {
+  /// Category of the item: 'fridge' or 'stock'
+  final String category;
+
+  /// Creates an [AddShoppingItemDialog].
+  ///
+  /// Parameters:
+  /// - [category]: The category for the new item (required)
   const AddShoppingItemDialog({
     super.key,
     required this.category,
@@ -17,9 +43,16 @@ class AddShoppingItemDialog extends StatefulWidget {
 }
 
 class _AddShoppingItemDialogState extends State<AddShoppingItemDialog> {
+  /// Form key for validation
   final _formKey = GlobalKey<FormState>();
+
+  /// Controller for item name input
   final _nameController = TextEditingController();
+
+  /// Controller for quantity input (defaults to '1')
   final _quantityController = TextEditingController(text: '1');
+
+  /// Controller for price input (optional)
   final _priceController = TextEditingController();
 
   @override
@@ -30,6 +63,14 @@ class _AddShoppingItemDialogState extends State<AddShoppingItemDialog> {
     super.dispose();
   }
 
+  /// Handles the save action.
+  ///
+  /// This method:
+  /// 1. Validates the form
+  /// 2. Extracts and parses input values
+  /// 3. Formats the item name with quantity if > 1
+  /// 4. Creates a new [ShoppingListItem]
+  /// 5. Returns it to the caller via Navigator.pop
   void _handleSave() {
     if (_formKey.currentState!.validate()) {
       final name = _nameController.text.trim();
@@ -55,6 +96,13 @@ class _AddShoppingItemDialogState extends State<AddShoppingItemDialog> {
     }
   }
 
+  /// Builds the add shopping item dialog widget.
+  ///
+  /// Creates a form dialog with input fields for name, quantity,
+  /// and price, along with cancel and save buttons.
+  ///
+  /// Parameters:
+  /// - [context]: The build context
   @override
   Widget build(BuildContext context) {
     return Dialog(

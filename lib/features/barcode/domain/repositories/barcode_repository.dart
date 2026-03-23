@@ -1,12 +1,20 @@
 import '../entities/barcode_result.dart';
 
-/// 바코드 리포지토리 인터페이스
+/// Repository interface for barcode scanning operations.
+///
+/// This repository defines the contract for barcode-related functionality,
+/// including scanning barcodes from images and retrieving product information.
 abstract class BarcodeRepository {
-  /// 이미지에서 바코드를 스캔합니다.
+  /// Scans a barcode from an image file.
   ///
-  /// [imagePath]: 스캔할 이미지 경로
+  /// Processes the image at the given path to detect and decode barcodes.
+  /// May also fetch product information associated with the barcode.
   ///
-  /// 반환: 바코드 스캔 결과
+  /// Parameters:
+  ///   [imagePath] - The file path of the image to scan
+  ///
+  /// Returns a [BarcodeResult] containing the barcode and product info,
+  /// or null if no barcode is detected.
   Future<BarcodeResult?> scanBarcode(String imagePath);
 }
 

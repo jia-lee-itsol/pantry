@@ -1,10 +1,26 @@
+/// Domain entity representing a product category.
+///
+/// Categories are used to organize and classify items in the pantry system.
+/// Each category has a name, icon, and order for display purposes.
 class Category {
+  /// Unique identifier for the category
   final String id;
+
+  /// Display name of the category
   final String name;
-  final String iconName; // IconData를 문자열로 저장
-  final int order; // 정렬 순서
+
+  /// Icon name stored as string (represents IconData)
+  final String iconName;
+
+  /// Display order for sorting categories
+  final int order;
+
+  /// Timestamp when the category was created
   final DateTime createdAt;
 
+  /// Creates a [Category] instance.
+  ///
+  /// All parameters are required except [order] which defaults to 0.
   const Category({
     required this.id,
     required this.name,
@@ -13,6 +29,10 @@ class Category {
     required this.createdAt,
   });
 
+  /// Creates a copy of this category with the given fields replaced.
+  ///
+  /// Returns a new [Category] instance with updated values for any
+  /// non-null parameters, keeping existing values for null parameters.
   Category copyWith({
     String? id,
     String? name,

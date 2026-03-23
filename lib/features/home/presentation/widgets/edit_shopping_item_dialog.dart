@@ -4,9 +4,36 @@ import '../../../../core/design/spacing.dart';
 import '../../../../core/design/color_schemes.dart';
 import '../../domain/entities/shopping_list_item.dart';
 
+// ============================================
+// Edit Shopping Item Dialog
+// ============================================
+
+/// Dialog for editing an existing shopping list item.
+///
+/// This dialog provides a form with the following fields:
+/// - Item name (required, pre-filled from existing item)
+/// - Quantity (required, parsed from item name)
+/// - Estimated price (optional, pre-filled from existing item)
+///
+/// Features:
+/// - Pre-populates fields with current item data
+/// - Parses quantity from item name format "Name (数量: X)"
+/// - Input validation for all fields
+/// - Cancel and Save buttons
+/// - Auto-focus on name field
+///
+/// The quantity is stored in the item name using the format:
+/// "Item Name (数量: X)" for quantities greater than 1.
+///
+/// Returns an updated [ShoppingListItem] when saved, or null when cancelled.
 class EditShoppingItemDialog extends StatefulWidget {
+  /// The shopping list item to edit
   final ShoppingListItem item;
 
+  /// Creates an [EditShoppingItemDialog].
+  ///
+  /// Parameters:
+  /// - [item]: The item to edit (required)
   const EditShoppingItemDialog({
     super.key,
     required this.item,
@@ -17,15 +44,22 @@ class EditShoppingItemDialog extends StatefulWidget {
 }
 
 class _EditShoppingItemDialogState extends State<EditShoppingItemDialog> {
+  /// Form key for validation
   final _formKey = GlobalKey<FormState>();
+
+  /// Controller for item name input
   late final TextEditingController _nameController;
+
+  /// Controller for quantity input
   late final TextEditingController _quantityController;
+
+  /// Controller for price input
   late final TextEditingController _priceController;
 
   @override
   void initState() {
     super.initState();
-    // name에서 상품명과 수량 파싱
+    // Parse item name to extract name and quantity
     final parsed = _parseNameAndQuantity(widget.item.name);
     _nameController = TextEditingController(text: parsed['name'] ?? '');
     _quantityController = TextEditingController(text: parsed['quantity'] ?? '1');
@@ -42,9 +76,19 @@ class _EditShoppingItemDialogState extends State<EditShoppingItemDialog> {
     super.dispose();
   }
 
-  /// name에서 상품명과 수량 파싱
-  /// 예: "商品名 (数量: 3)" -> {name: "商品名", quantity: "3"}
-  /// 예: "商品名" -> {name: "商品名", quantity: "1"}
+  /// Parses item name to extract product name and quantity.
+  ///
+  /// Supports the format "Product Name (数量: X)" where X is the quantity.
+  /// If no quantity is found, defaults to quantity "1".
+  ///
+  /// Examples:
+  /// - "商品名 (数量: 3)" -> {name: "商品名", quantity: "3"}
+  /// - "商品名" -> {name: "商品名", quantity: "1"}
+  ///
+  /// Parameters:
+  /// - [name]: The full item name to parse
+  ///
+  /// Returns a Map with 'name' and 'quantity' keys.
   Map<String, String> _parseNameAndQuantity(String name) {
     final quantityPattern = RegExp(r'\(数量:\s*(\d+)\)');
     final match = quantityPattern.firstMatch(name);
@@ -58,6 +102,14 @@ class _EditShoppingItemDialogState extends State<EditShoppingItemDialog> {
     }
   }
 
+  /// Handles the save action.
+  ///
+  /// This method:
+  /// 1. Validates the form
+  /// 2. Extracts and parses input values
+  /// 3. Formats the item name with quantity if > 1
+  /// 4. Creates an updated [ShoppingListItem] copy
+  /// 5. Returns it to the caller via Navigator.pop
   void _handleSave() {
     if (_formKey.currentState!.validate()) {
       final name = _nameController.text.trim();
@@ -66,7 +118,7 @@ class _EditShoppingItemDialogState extends State<EditShoppingItemDialog> {
       final priceText = _priceController.text.trim();
       final price = priceText.isEmpty ? null : int.tryParse(priceText);
 
-      // 수량이 1보다 크면 name에 수량 포함
+      // Include quantity in name if greater than 1
       final finalName = quantity > 1
           ? '$name (数量: $quantity)'
           : name;
@@ -80,6 +132,13 @@ class _EditShoppingItemDialogState extends State<EditShoppingItemDialog> {
     }
   }
 
+  /// Builds the edit shopping item dialog widget.
+  ///
+  /// Creates a form dialog with pre-filled input fields for name,
+  /// quantity, and price, along with cancel and save buttons.
+  ///
+  /// Parameters:
+  /// - [context]: The build context
   @override
   Widget build(BuildContext context) {
     return Dialog(

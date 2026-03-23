@@ -550,6 +550,7 @@ final autoMigrationProvider = FutureProvider<void>((ref) async {
   final householdId = await repository.getUserHouseholdId(user.uid);
 
   if (householdId == null) {
+    // New user: create household with invite code
     final member = HouseholdMember(
       id: user.uid,
       role: HouseholdRole.owner,
@@ -570,5 +571,8 @@ final autoMigrationProvider = FutureProvider<void>((ref) async {
       userId: user.uid,
       householdId: household.id,
     );
+  } else {
+    // Existing user: migrate invite code if needed
+    await repository.migrateHouseholdInviteCode(householdId);
   }
 });

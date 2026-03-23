@@ -2,9 +2,21 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/category_model.dart';
 
+/// Local data source for category storage using SharedPreferences.
+///
+/// This class manages category data persistence in local storage,
+/// including loading, saving, and providing default categories
+/// when no custom categories exist.
 class CategoryLocalDataSource {
   static const String _key = 'categories';
 
+  /// Retrieves categories from local storage.
+  ///
+  /// Returns saved categories if they exist, otherwise returns default categories.
+  /// Categories are automatically sorted by their order property.
+  ///
+  /// Returns a list of [CategoryModel] objects.
+  /// If SharedPreferences is unavailable, returns default categories.
   Future<List<CategoryModel>> getCategories() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -18,12 +30,20 @@ class CategoryLocalDataSource {
           .toList()
         ..sort((a, b) => a.order.compareTo(b.order));
     } catch (e) {
-      // shared_preferences 플러그인이 사용 불가능한 경우 기본 카테고리 반환
-      // MissingPluginException 등은 기본 카테고리를 반환하여 앱이 계속 작동하도록 함
+      // Return default categories if SharedPreferences is unavailable
+      // (e.g., MissingPluginException) to keep the app functional
       return _getDefaultCategories();
     }
   }
 
+  /// Saves categories to local storage.
+  ///
+  /// Serializes the category list to JSON and stores it in SharedPreferences.
+  ///
+  /// Parameters:
+  ///   [categories] - The list of categories to save
+  ///
+  /// Throws an exception if SharedPreferences is unavailable or saving fails.
   Future<void> saveCategories(List<CategoryModel> categories) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -31,12 +51,19 @@ class CategoryLocalDataSource {
       final jsonString = json.encode(jsonList);
       await prefs.setString(_key, jsonString);
     } catch (e) {
-      // shared_preferences 플러그인이 사용 불가능한 경우 에러를 다시 throw
-      // (예: 웹에서 실행 중이거나 플러그인이 제대로 등록되지 않은 경우)
-      throw Exception('カテゴリ保存失敗: $e');
+      // Re-throw exception if SharedPreferences is unavailable
+      // (e.g., running on web or plugin not properly registered)
+      throw Exception('Failed to save categories: $e');
     }
   }
 
+  /// Provides a set of default categories.
+  ///
+  /// These categories are used when no custom categories exist or
+  /// when local storage is unavailable.
+  ///
+  /// Returns a list of predefined [CategoryModel] objects including
+  /// common food categories like fruits, proteins, dairy, vegetables, etc.
   List<CategoryModel> _getDefaultCategories() {
     final now = DateTime.now();
     return [

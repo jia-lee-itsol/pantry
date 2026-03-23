@@ -105,6 +105,11 @@ class HouseholdRepositoryImpl implements HouseholdRepository {
   }
 
   @override
+  Future<void> migrateHouseholdInviteCode(String householdId) {
+    return _dataSource.migrateHouseholdInviteCode(householdId);
+  }
+
+  @override
   Future<void> notifyOwnerOfNewMember({
     required String householdId,
     required String newMemberName,
